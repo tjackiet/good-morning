@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from good_morning.context import RunContext, SectionContent
+from good_morning.crypto.builders import build_btc, build_crypto_watchlist
 from good_morning.markets.builders import build_markets, build_sectors, build_stock_watchlist
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, STATUS_PENDING, Section
 
@@ -43,8 +44,8 @@ SECTION_SPECS: list[SectionSpec] = [
     SectionSpec("summary", "今朝のまとめ", phase=5),
     SectionSpec("markets", "マーケット一覧", phase=1, builder=build_markets),
     SectionSpec("sectors", "セクター別騰落率", phase=1, builder=build_sectors),
-    SectionSpec("btc", "BTCの詳細", phase=2),
-    SectionSpec("crypto_watchlist", "暗号資産ウォッチリスト", phase=2),
+    SectionSpec("btc", "BTCの詳細", phase=2, builder=build_btc),
+    SectionSpec("crypto_watchlist", "暗号資産ウォッチリスト", phase=2, builder=build_crypto_watchlist),
     SectionSpec("stock_watchlist", "株式ウォッチリスト", phase=1, builder=build_stock_watchlist),
     SectionSpec("calendar", "今後の予定", phase=3),
     SectionSpec("news", "主要ニュース", phase=4),

@@ -8,6 +8,7 @@ import logging
 
 from good_morning.collector.market_data import MarketDataError, fetch_daily_series
 from good_morning.context import RunContext, SectionContent
+from good_morning.crypto.builders import SOURCE_BITBANK, bitbank_basis_line, btc_market_quote
 from good_morning.markets.config import MarketClose, load_markets_config
 from good_morning.markets.quotes import (
     Quote,
@@ -76,7 +77,9 @@ def _basis_lines(results: list[QuoteResult], ctx: RunContext, close: MarketClose
 def build_markets(ctx: RunContext) -> SectionContent:
     config = load_markets_config()
     close = config.us_market_close
-    results = [
+    # 先頭は BTC/JPY（bitbank の取得時点の値。前日比は24時間前との比較）
+    btc = btc_market_quote(ctx)
+    results = [btc] + [
         fetch_quote(
             m.ticker,
             m.name,
@@ -94,15 +97,16 @@ def build_markets(ctx: RunContext) -> SectionContent:
     body = [render_market_table(results, common_close_date(results)), ""]
     if any(isinstance(r, Quote) and r.basis == "live" for r in results):
         body.append(
-            f"{LIVE_MARK} 取得時点の値（ほぼ24時間取引される為替・先物など）。"
-            "前日比は前日の足の終値との比較です。"
+            f"{LIVE_MARK} 取得時点の値（ほぼ24時間取引される暗号資産・為替・先物など）。"
+            "前日比は前日の足の終値との比較で、BTC/JPY のみ24時間前との比較です。"
         )
-    body.append("BTC/JPY（bitbank）はフェーズ2で追加します。")
-    return SectionContent(
-        body="\n".join(body),
-        basis=_basis_lines(results, ctx, close),
-        sources=[SOURCE_YFINANCE],
-    )
+
+    basis = _basis_lines(results[1:], ctx, close)
+    sources = [SOURCE_YFINANCE]
+    if isinstance(btc, Quote):
+        basis.insert(0, bitbank_basis_line(ctx))
+        sources.insert(0, SOURCE_BITBANK)
+    return SectionContent(body="\n".join(body), basis=basis, sources=sources)
 
 
 def build_sectors(ctx: RunContext) -> SectionContent:
