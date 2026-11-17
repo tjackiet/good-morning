@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 環境変数・秘密情報（コミットするのは .env.example だけ）
+.env
+.env.*
+!.env.example
+
+# 個人のウォッチリスト（コミットするのは config/watchlist.example.yaml だけ）
+config/watchlist.yaml
+
+# 生成物
+outputs/
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# MCP auth cache (contains tokens)
+.mcp-auth/
+
+# Claude Code local settings (may contain secrets)
+.claude/
