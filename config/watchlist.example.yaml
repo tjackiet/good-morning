@@ -1,0 +1,25 @@
+# ウォッチリストの見本（銘柄は仮のもの）
+#
+# 使い方: 手元でこのファイルを watchlist.yaml にコピーして編集する。
+#   cp config/watchlist.example.yaml config/watchlist.yaml
+# watchlist.yaml は .gitignore に入っているので push されない。
+# watchlist.yaml がないときは、このファイルを読み込んで警告を出す。
+
+crypto:
+  main: btc_jpy
+  # 最大5銘柄。超えた分は先頭から順に採用し、残りは無視する。
+  # bitbank の取扱銘柄にないペアは、警告を出してスキップする。
+  watch: [eth_jpy, xrp_jpy, sol_jpy, doge_jpy, link_jpy]
+
+# 最大10銘柄、米国株のみ。超えた分は先頭から順に採用し、残りは無視する。
+# related: 決算予定の対象に含める関連企業
+stocks:
+  - ticker: NVDA
+    name: エヌビディア
+    related: [TSM, AMD, AVGO, SMCI]
+  - ticker: COIN
+    name: コインベース
+    related: [HOOD, MSTR]
+  - ticker: MSTR
+    name: ストラテジー
+    related: []
