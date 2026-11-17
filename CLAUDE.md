@@ -32,7 +32,7 @@
 | 0 | リポジトリの準備（aion の複製、AI専用部分の整理、CLAUDE.md） | 済 |
 | 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | 済 |
 | 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | 済 |
-| 3 | 今後の予定（決算・FRED・events.yaml） | |
+| 3 | 今後の予定（決算・FRED・events.yaml） | 済（FRED は実データ未確認） |
 | 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | |
 | 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | |
 | 6 | launchd で毎日 JST 7:15 に定時実行 | |
@@ -79,6 +79,15 @@
 - 祝日などで終値の日付が他の銘柄とずれた行には「（11/13 終値）」を添える。ヘッダーの基準日は、終値の銘柄で最も多い日付。
 - 1銘柄の失敗はその行だけ「取得失敗」。全銘柄が失敗したらセクションごと「取得失敗」。
 
+### 今後の予定（フェーズ3で実装）
+
+- 3つの取得元（events.yaml・FRED・決算）は独立して扱い、どれかが失敗しても残りで表を作る。失敗はセクション末尾に「⚠ 取得できませんでした」と書き、理由はログへ。
+- **FOMC・日銀**: `events.yaml` に公式ページから転記（年1回）。FOMC 議事要旨は「政策決定の3週間後」（公式ページの記載）で計算した日付を `estimated: true` にしている。FOMC の声明は 14:00（米東部）＝日本時間 4:00（冬）／3:00（夏）。日銀の結果発表は時刻未定なので時刻なし（その日の最後に並ぶ）。
+- **FRED**: `fred/releases/dates`（`include_release_dates_with_no_data=true`、昇順、1000件ずつページ送りし、期間を過ぎたら止める）。返るのは日付だけなので、時刻（米東部）と重要度は `events.yaml` の `fred.releases` で決め、`release_name` の完全一致で拾う。**`FRED_API_KEY` が未設定のため、実データでの確認がまだ**。テストは合成データ（`tests/fixtures/fred/release_dates_synthetic.json`）。キーを入れたら `scripts/capture_schedule_fixture.py` で実データを保存し、`release_name` が一致するかを確かめて置き換える。
+- **FRED の API キーを漏らさない**: httpx の例外メッセージは URL（＝キー）を含むので使わず、例外の型名を原因までたどって残す（例 `ConnectError ← SSLCertVerificationError`）。`raise ... from None` でトレースバックにも残さない。httpx のログは WARNING 以上にしてあるので、リクエストの URL もログに出ない。
+- **決算日**: yfinance の `info`（決算日に関わる項目だけ。価格には使わない）と `get_earnings_dates()` を使う。実データで確かめた `info` の意味: `isEarningsDateEstimate=False` かつ未来 → 確定、`True` → 推定、`False` かつ過去 → 前回の決算（次回は `get_earnings_dates()` の未発表の行から推定）。EPS 予想は `get_earnings_dates()` の日付が近い行から。`Ticker.calendar` は古い日付を返すことがあった（HOOD）ので使わない。related の関連企業は `shortName`（会社名）で表示する。
+- 決算日の取得は1銘柄2回の通信（info と get_earnings_dates）。見本のウォッチリスト（関連企業込み8銘柄）で約10秒。
+
 ### bitbank-lab-mcp の注意（検証で判明済み）
 
 - **文章のラベルを使わない。** 同じ出力で RSI 37.0 が「中立圏」と「弱め（反発余地）」の両方で出る。判定は `structuredContent` の数値から自前の基準で行う。
@@ -106,7 +115,7 @@
 | `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
 | `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻 | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
-| `events.yaml` | FOMC・日銀の日程と重要度 | フェーズ3 |
+| `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度、表示する期間 | 済 |
 | `feeds.yaml` / `keywords.yaml` | RSS とキーワード。**現在は aion の AI 向けの中身を仮置き**。フェーズ4で市場向けに入れ替える | 仮 |
 | `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）とプロンプト | 仮 |
 
@@ -148,6 +157,8 @@ src/good_morning/
   markets/           markets.yaml の読み込み、前日比の計算、3つの表とセクションの builder
   collector/bitbank_mcp.py  bitbank-lab-mcp への接続（MCP に触れるのはここだけ）
   crypto/            scoring.yaml の読み込み、テクニカルの判定、BTCの詳細・暗号資産ウォッチリスト
+  collector/fred.py  FRED の発表予定日の取得
+  schedule/          events.yaml の読み込み、予定の組み立て（JST 変換・期間・並べ替え）、今後の予定のセクション
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
   collector/rss.py   RSS 取得（aion から流用）
@@ -169,4 +180,5 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 - テストは aion の流儀に合わせる: 実データのスナップショットを `tests/fixtures/` に置き、`monkeypatch` で取得関数を差し替える。共通の部品は `tests/conftest.py`。
 - yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance・bitbank-lab-mcp に触れたら失敗させる。
 - bitbank の固定データは `scripts/capture_bitbank_fixture.py` で `tests/fixtures/bitbank/` に保存する（使う部分だけに切り詰める。1本約1MB → 全体で約170KB）。テストでは `fake_bitbank` フィクスチャで差し替える。
+- 決算日・FRED の固定データは `scripts/capture_schedule_fixture.py` で保存する（FRED はキーがあるときだけ）。テストでは `fake_yfinance`（決算日も返す）と、`test_schedule_builder.py` の `fake_fred` で差し替える。autouse フィクスチャは `httpx.get` も止める。
 - `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。

@@ -27,11 +27,15 @@ def fixtures_dir() -> Path:
 
 # 2026-11-17 23:09 JST に bitbank-lab-mcp から取得した実データ（使う部分だけに切り詰めたもの）
 BITBANK_FIXTURE = "bitbank/snapshot_20261117_2309.json"
+# 2026-11-17 23:20 JST に yfinance から取得した決算日の実データ（見本のウォッチリスト＋related）
+YF_EARNINGS_FIXTURE = "yfinance/earnings_20261117_2320.json"
+# FRED は API キーがないため合成データ（ファイル内の _comment 参照）。キーを入れたら実データに置き換える
+FRED_SYNTHETIC_FIXTURE = "fred/release_dates_synthetic.json"
 
 
 @pytest.fixture(autouse=True)
 def _block_network(monkeypatch):
-    """テストから yfinance・bitbank-lab-mcp（ネットワーク）に触れたら失敗させる（大原則5）"""
+    """テストから yfinance・bitbank-lab-mcp・HTTP（RSS・FRED）に触れたら失敗させる（大原則5）"""
 
     def _blocked_yf(*args, **kwargs):
         raise RuntimeError("テストから yfinance にアクセスしようとしました。fixtures を使ってください")
@@ -39,8 +43,12 @@ def _block_network(monkeypatch):
     def _blocked_mcp(*args, **kwargs):
         raise RuntimeError("テストから bitbank-lab-mcp に接続しようとしました。fixtures を使ってください")
 
+    def _blocked_http(*args, **kwargs):
+        raise RuntimeError("テストから HTTP で外部に接続しようとしました。fixtures を使ってください")
+
     monkeypatch.setattr("good_morning.collector.market_data.yf.Ticker", _blocked_yf)
     monkeypatch.setattr("good_morning.collector.bitbank_mcp.fetch_snapshot", _blocked_mcp)
+    monkeypatch.setattr("httpx.get", _blocked_http)
 
 
 def load_fixture_json(name: str) -> dict:
@@ -80,19 +88,36 @@ def history_frame(series: dict) -> pd.DataFrame:
     return pd.DataFrame({"Close": closes}, index=index)
 
 
+def earnings_frame(rows: list) -> pd.DataFrame:
+    """fixtures の決算日の行を get_earnings_dates() と同じ形の DataFrame に戻す"""
+    if not rows:
+        return pd.DataFrame()
+    index = pd.to_datetime([r[0] for r in rows], utc=True).tz_convert("America/New_York")
+    return pd.DataFrame(
+        {
+            "EPS Estimate": [np.nan if r[1] is None else r[1] for r in rows],
+            "Reported EPS": [np.nan if r[2] is None else r[2] for r in rows],
+        },
+        index=index,
+    )
+
+
 @pytest.fixture
 def fake_yfinance(monkeypatch):
     """yfinance.Ticker を fixtures から返す偽物に差し替える
 
     使い方: fake_yfinance(YF_PRE_OPEN_FIXTURE) / fake_yfinance(data_dict)
+            fake_yfinance(YF_PRE_OPEN_FIXTURE, YF_EARNINGS_FIXTURE)  # 複数をまとめて使う
     fixtures にない銘柄は空の DataFrame を返す（銘柄コードの誤りと同じ振る舞い）。
+    決算日（info・get_earnings_dates）は fixtures の "earnings" から返す。
     """
 
-    def _install(source: str | dict) -> dict:
-        if isinstance(source, str):
-            data = json.loads((FIXTURES_DIR / source).read_text(encoding="utf-8"))
-        else:
-            data = source
+    def _install(*sources: str | dict) -> dict:
+        data: dict = {"series": {}, "earnings": {}}
+        for source in sources:
+            loaded = load_fixture_json(source) if isinstance(source, str) else source
+            data["series"].update(loaded.get("series", {}))
+            data["earnings"].update(loaded.get("earnings", {}))
 
         class FakeTicker:
             def __init__(self, ticker: str):
@@ -103,6 +128,15 @@ def fake_yfinance(monkeypatch):
                 assert interval == "1d"
                 series = data["series"].get(self.ticker)
                 return pd.DataFrame() if series is None else history_frame(series)
+
+            @property
+            def info(self):
+                if self.ticker not in data["earnings"]:
+                    raise KeyError(f"{self.ticker}: fixtures に決算日の情報がありません")
+                return dict(data["earnings"][self.ticker]["info"])
+
+            def get_earnings_dates(self, limit=None):
+                return earnings_frame(data["earnings"].get(self.ticker, {}).get("earnings_dates", []))
 
         monkeypatch.setattr("good_morning.collector.market_data.yf.Ticker", FakeTicker)
         return data

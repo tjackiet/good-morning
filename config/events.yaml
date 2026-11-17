@@ -1,0 +1,97 @@
+# 今後の予定の設定（FOMC・日銀の日程、FRED の経済指標、決算）
+#
+# FOMC と日銀の日程は、公式ページから年1回手で転記する。
+#   FOMC: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+#   日銀: https://www.boj.or.jp/mopo/mpmsche_minu/index.htm
+# 2026-11-17 に両ページから転記（FOMC の2027年は「各会合の直前の会合で確定するまでは暫定」）。
+
+horizon:
+  detail_days: 7    # 今日からこの日数以内は詳しく（日時・内容・重要度・予想値）
+  total_days: 30    # 今日からこの日数以内を、残りは1行ずつの簡易一覧に出す
+
+# 区分ごとの既定値。events の各項目で上書きできる。
+# time を書かない予定は「時刻未定」として、その日の最後に並べる。
+categories:
+  fomc:
+    timezone: America/New_York
+    time: "14:00"          # 声明の発表（議長会見は 14:30）。公式ページに時刻の記載はなく、慣例の時刻
+    importance: 高
+  fomc_minutes:
+    timezone: America/New_York
+    time: "14:00"
+    importance: 中         # 政策決定の3週間後に公開（公式ページの記載）
+  boj:
+    timezone: Asia/Tokyo
+    importance: 高         # 結果の発表時刻は決まっていない（昼ごろが多い）。総裁会見は 15:30
+    note: 時刻未定・例年は昼ごろ
+  boj_opinions:
+    timezone: Asia/Tokyo
+    time: "08:50"
+    importance: 低
+
+# estimated: true … 公式ページに日付がなく、ルールから計算した日付（表では「推定」と出す）
+events:
+  # --- FOMC 2026 ---
+  - {category: fomc_minutes, date: 2026-11-18, title: FOMC 議事要旨（10/27〜28会合）, estimated: true}
+  - {category: fomc, date: 2026-12-09, title: FOMC 政策金利の発表（12/8〜9会合・経済見通しあり）}
+  - {category: fomc_minutes, date: 2026-12-30, title: FOMC 議事要旨（12/8〜9会合）, estimated: true}
+  # --- FOMC 2027（暫定）---
+  - {category: fomc, date: 2027-01-27, title: FOMC 政策金利の発表（1/26〜27会合）}
+  - {category: fomc_minutes, date: 2027-02-17, title: FOMC 議事要旨（1/26〜27会合）, estimated: true}
+  - {category: fomc, date: 2027-03-17, title: FOMC 政策金利の発表（3/16〜17会合）}
+  - {category: fomc_minutes, date: 2027-04-07, title: FOMC 議事要旨（3/16〜17会合）, estimated: true}
+  - {category: fomc, date: 2027-04-28, title: FOMC 政策金利の発表（4/27〜28会合）}
+  - {category: fomc_minutes, date: 2027-05-19, title: FOMC 議事要旨（4/27〜28会合）, estimated: true}
+  - {category: fomc, date: 2027-06-09, title: FOMC 政策金利の発表（6/8〜9会合）}
+  - {category: fomc_minutes, date: 2027-06-30, title: FOMC 議事要旨（6/8〜9会合）, estimated: true}
+  - {category: fomc, date: 2027-07-28, title: FOMC 政策金利の発表（7/27〜28会合）}
+  - {category: fomc_minutes, date: 2027-08-18, title: FOMC 議事要旨（7/27〜28会合）, estimated: true}
+  - {category: fomc, date: 2027-09-15, title: FOMC 政策金利の発表（9/14〜15会合）}
+  - {category: fomc_minutes, date: 2027-10-06, title: FOMC 議事要旨（9/14〜15会合）, estimated: true}
+  - {category: fomc, date: 2027-10-27, title: FOMC 政策金利の発表（10/26〜27会合）}
+  - {category: fomc_minutes, date: 2027-11-17, title: FOMC 議事要旨（10/26〜27会合）, estimated: true}
+  - {category: fomc, date: 2027-11-17, title: FOMC 政策金利の発表（11/16〜17会合）}
+  - {category: fomc_minutes, date: 2027-12-08, title: FOMC 議事要旨（11/16〜17会合）, estimated: true}
+
+  # --- 日銀 2026 ---
+  - {category: boj, date: 2026-12-18, title: 日銀 金融政策決定会合の結果（12/17〜18会合）}
+  - {category: boj_opinions, date: 2026-12-28, title: 日銀 主な意見（12/17〜18会合）}
+  # --- 日銀 2027 ---
+  - {category: boj, date: 2027-01-22, title: 日銀 金融政策決定会合の結果（1/21〜22会合・展望レポート）}
+  - {category: boj_opinions, date: 2027-02-01, title: 日銀 主な意見（1/21〜22会合）}
+  - {category: boj, date: 2027-03-18, title: 日銀 金融政策決定会合の結果（3/17〜18会合）}
+  - {category: boj_opinions, date: 2027-03-29, title: 日銀 主な意見（3/17〜18会合）}
+  - {category: boj, date: 2027-04-28, title: 日銀 金融政策決定会合の結果（4/27〜28会合・展望レポート）}
+  - {category: boj_opinions, date: 2027-05-12, title: 日銀 主な意見（4/27〜28会合）}
+  - {category: boj, date: 2027-06-11, title: 日銀 金融政策決定会合の結果（6/10〜11会合）}
+  - {category: boj_opinions, date: 2027-06-21, title: 日銀 主な意見（6/10〜11会合）}
+  - {category: boj, date: 2027-07-22, title: 日銀 金融政策決定会合の結果（7/21〜22会合・展望レポート）}
+  - {category: boj_opinions, date: 2027-07-30, title: 日銀 主な意見（7/21〜22会合）}
+  - {category: boj, date: 2027-09-22, title: 日銀 金融政策決定会合の結果（9/21〜22会合）}
+  - {category: boj_opinions, date: 2027-10-01, title: 日銀 主な意見（9/21〜22会合）}
+  - {category: boj, date: 2027-10-29, title: 日銀 金融政策決定会合の結果（10/28〜29会合・展望レポート）}
+  - {category: boj_opinions, date: 2027-11-09, title: 日銀 主な意見（10/28〜29会合）}
+  - {category: boj, date: 2027-12-17, title: 日銀 金融政策決定会合の結果（12/16〜17会合）}
+  - {category: boj_opinions, date: 2027-12-27, title: 日銀 主な意見（12/16〜17会合）}
+
+# FRED の経済指標の発表予定日（fred/releases/dates、include_release_dates_with_no_data=true）。
+# FRED が返すのは日付だけなので、発表時刻（米東部時間）と重要度はここで決める。
+# name は FRED の release_name と完全一致させる。ここにない指標は表示しない。
+# ※ FRED_API_KEY を設定してから、実データで name が一致するかを確かめること（未確認）。
+fred:
+  timezone: America/New_York
+  releases:
+    - {name: Employment Situation, title: 米雇用統計, importance: 高, time: "08:30"}
+    - {name: Consumer Price Index, title: 米消費者物価指数（CPI）, importance: 高, time: "08:30"}
+    - {name: Personal Income and Outlays, title: 米個人所得・個人消費支出（PCE）, importance: 高, time: "08:30"}
+    - {name: Gross Domestic Product, title: 米GDP, importance: 中, time: "08:30"}
+    - {name: Producer Price Index, title: 米生産者物価指数（PPI）, importance: 中, time: "08:30"}
+    - {name: Advance Monthly Sales for Retail and Food Services, title: 米小売売上高, importance: 中, time: "08:30"}
+    - {name: Job Openings and Labor Turnover Survey, title: 米JOLTS求人件数, importance: 中, time: "10:00"}
+    - {name: Unemployment Insurance Weekly Claims Report, title: 米新規失業保険申請件数, importance: 低, time: "08:30"}
+
+# 決算（ウォッチリストの米国株と、related に書いた関連企業）
+earnings:
+  importance:
+    watchlist: 中
+    related: 低

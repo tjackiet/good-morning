@@ -9,8 +9,9 @@ yfinance は非公式ライブラリなので、取得元を差し替えると�
 """
 
 import logging
+import math
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 
 import yfinance as yf
 
@@ -60,3 +61,86 @@ def fetch_daily_series(ticker: str, period: str = HISTORY_PERIOD) -> DailySeries
     except Exception as e:
         raise MarketDataError(f"{ticker}: 取得に失敗しました（{type(e).__name__}: {e}）") from e
     return series_from_history(ticker, history)
+
+
+# --- 決算日 -------------------------------------------------------------------
+#
+# 決算日は info の earningsTimestampStart / isEarningsDateEstimate（確定か推定か）と、
+# get_earnings_dates() の行（日時と EPS 予想）から決める。info を使うのは決算日の情報だけで、
+# 価格（currentPrice 系）には使わない（大原則2）。
+# 実データで確認した info の意味（2026-11-17）:
+#   isEarningsDateEstimate=False かつ未来の日時 … 確定した次回の決算
+#   isEarningsDateEstimate=True                 … 推定の次回の決算（Start〜End が推定の範囲）
+#   isEarningsDateEstimate=False かつ過去の日時 … 前回の決算（次回は未発表）
+
+EARNINGS_DATES_LIMIT = 8
+
+
+@dataclass(frozen=True)
+class EarningsRow:
+    when: datetime  # タイムゾーン付き
+    eps_estimate: float | None
+    reported_eps: float | None
+
+
+@dataclass(frozen=True)
+class EarningsInfo:
+    ticker: str
+    next_start: datetime | None  # info の earningsTimestampStart（なければ earningsTimestamp）
+    next_end: datetime | None
+    is_estimate: bool | None
+    rows: tuple[EarningsRow, ...]  # get_earnings_dates() の行（新しい順）
+    short_name: str | None = None  # 会社名（related の関連企業の表示に使う）
+
+
+def _timestamp(value) -> datetime | None:
+    if isinstance(value, (int, float)) and value > 0:
+        return datetime.fromtimestamp(value, tz=UTC)
+    return None
+
+
+def _float_or_none(value) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(number) else number
+
+
+def earnings_from_raw(ticker: str, info: dict | None, earnings_dates) -> EarningsInfo:
+    """yfinance の info と get_earnings_dates() の結果から EarningsInfo を作る"""
+    info = info or {}
+    rows: list[EarningsRow] = []
+    if earnings_dates is not None and not earnings_dates.empty:
+        for ts, row in earnings_dates.iterrows():
+            rows.append(
+                EarningsRow(
+                    when=ts.to_pydatetime(),
+                    eps_estimate=_float_or_none(row.get("EPS Estimate")),
+                    reported_eps=_float_or_none(row.get("Reported EPS")),
+                )
+            )
+    estimate = info.get("isEarningsDateEstimate")
+    return EarningsInfo(
+        ticker=ticker,
+        next_start=_timestamp(info.get("earningsTimestampStart") or info.get("earningsTimestamp")),
+        next_end=_timestamp(info.get("earningsTimestampEnd")),
+        is_estimate=estimate if isinstance(estimate, bool) else None,
+        rows=tuple(rows),
+        short_name=info.get("shortName") or None,
+    )
+
+
+def fetch_earnings(ticker: str) -> EarningsInfo:
+    """1銘柄の決算日の情報を取得する"""
+    yf_ticker = yf.Ticker(ticker)
+    try:
+        info = yf_ticker.info
+    except Exception as e:
+        raise MarketDataError(f"{ticker}: 決算日の情報を取得できません（{type(e).__name__}: {e}）") from e
+    try:
+        earnings_dates = yf_ticker.get_earnings_dates(limit=EARNINGS_DATES_LIMIT)
+    except Exception as e:  # noqa: BLE001 - info だけでも決算日は分かるので続ける
+        logger.warning("%s: get_earnings_dates に失敗 - %s: %s", ticker, type(e).__name__, e)
+        earnings_dates = None
+    return earnings_from_raw(ticker, info, earnings_dates)
