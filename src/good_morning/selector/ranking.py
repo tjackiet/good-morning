@@ -1,22 +1,25 @@
 """スコア順の並べ替えとカテゴリ別クォータによる要約対象の選定
 
-これ以前は summarizer が articles[:max_articles] で先頭N件を切っていた。
-記事はフィード取得順（feeds.yaml の並び順）で積まれているため、先頭にある
-ITmedia AI+ が要約枠を全部食い、後ろにある Zenn / はてブ / テクノエッジ /
-arXiv は一件も選ばれないという構造になっていた。
+（aion より）これ以前は summarizer が articles[:max_articles] で先頭N件を切っていた。
+記事はフィード取得順（feeds.yaml の並び順）で積まれているため、先頭のフィードが
+要約枠を全部食い、後ろのフィードは一件も選ばれないという構造になっていた。
 選定はここに集約し、summarizer は渡された記事を要約するだけにする。
+
+カテゴリごとの配分は config/feeds.yaml の categories.<カテゴリ>.quota で決める。
 """
 
+from good_morning.collector.rss import load_feeds_config
 from good_morning.models import Article
 
-DEFAULT_MAX_ARTICLES = 10
 
-# カテゴリごとの配分比。max_articles がこの合計と異なる場合は比率として按分する。
-CATEGORY_QUOTA = {
-    "business": 3,
-    "tech": 4,
-    "research": 3,
-}
+def load_category_quota() -> dict[str, int]:
+    """feeds.yaml のカテゴリごとの配分比（max_articles が合計と違えば比率として按分する）"""
+    return {name: c.quota for name, c in load_feeds_config().categories.items()}
+
+
+CATEGORY_QUOTA = load_category_quota()
+# 既定の要約本数はクォータの合計（指示書: 主要ニュースは3〜5本）
+DEFAULT_MAX_ARTICLES = sum(CATEGORY_QUOTA.values())
 
 
 def _sort_key(article: Article) -> tuple:

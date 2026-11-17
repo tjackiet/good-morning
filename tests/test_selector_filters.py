@@ -1,6 +1,8 @@
-"""good_morning.selector.filters のテスト"""
+"""good_morning.selector.filters のテスト（市場ニュースのキーワード）"""
 
 from datetime import timedelta
+
+import pytest
 
 from good_morning.selector.filters import (
     count_undated_by_source,
@@ -24,136 +26,113 @@ def test_filter_recent_articles_boundary_is_inclusive(make_article):
     # ちょうど境界（1日前）は含まれる想定 (>= cutoff)
     boundary = make_article(title="境界記事", published_offset=timedelta(days=-1, seconds=1))
 
-    result = filter_recent_articles([boundary], days=1)
-
-    assert result == [boundary]
+    assert filter_recent_articles([boundary], days=1) == [boundary]
 
 
-def test_matched_keywords_in_article_true_positive(make_article):
-    article = make_article(title="生成AIを業務に導入", summary=None)
+def test_matched_keywords_true_positive(make_article):
+    article = make_article(title="ビットコインETFに資金流入　FOMCを前に", summary=None)
 
-    assert matched_keywords_in_article(article) == ["AI", "生成AI"]
-
-
-def test_matched_keywords_in_article_fixes_substring_false_positive(make_article):
-    """PR2時点では 'AI' が 'TRAINING' の部分文字列として誤爆していた（既知のバグ）。
-    PR3の単語境界マッチでこの誤爆が解消されたことを固定する。"""
-    article = make_article(title="社員研修(TRAINING)プログラムを刷新", summary=None)
-
-    assert matched_keywords_in_article(article) == []
+    assert set(matched_keywords_in_article(article)) == {"FOMC", "ビットコイン", "ETF"}
 
 
-def test_matched_keywords_in_article_word_boundary_rejects_other_known_false_positives(make_article):
-    cases = [
-        "ストレージの容量を見直す",  # STORAGE に RAG
-        "平均値(AVERAGE)を算出する",  # AVERAGE に RAG
-        "メールでの連絡(EMAIL)手段",  # EMAIL に AI
-        "詳細(DETAIL)な説明を追加",  # DETAIL に AI
-    ]
-    for title in cases:
-        article = make_article(title=title, summary=None)
-        assert matched_keywords_in_article(article) == [], title
+@pytest.mark.parametrize(
+    "title",
+    [
+        "NETFLIX shares jump after earnings",  # NETFLIX の中の ETF
+        "Tech SECTOR leads gains",  # SECTOR の中の SEC
+        "A SECOND wave of selling",  # SECOND の中の SEC
+        "ETHICS review of the board",  # ETHICS の中の ETH
+        "Federation of unions",  # Federation の中の Fed
+    ],
+)
+def test_word_boundary_rejects_substring_false_positives(make_article, title):
+    """英語の語は単語の境界で区切ってマッチする（部分文字列では誤爆しない）"""
+    assert matched_keywords_in_article(make_article(title=title, summary=None)) == []
 
 
-def test_matched_keywords_in_article_still_matches_ai_adjacent_to_japanese(make_article):
-    """日本語に直接隣接する場合は正しくマッチし続けること（回帰防止）。"""
-    cases = [
-        ("生成AIを業務に導入", ["AI", "生成AI"]),
-        ("AIエージェントと働く", ["AI", "AIエージェント", "エージェント"]),
-    ]
-    for title, expected in cases:
-        article = make_article(title=title, summary=None)
-        assert matched_keywords_in_article(article) == expected
+@pytest.mark.parametrize(
+    "title,keyword",
+    [
+        ("Bitcoin ETFs see record inflows", "ETF"),
+        ("Stablecoins gain traction in payments", "stablecoin"),
+        ("New tariffs weigh on markets", "tariff"),
+        ("Treasury yields climb", "yield"),
+    ],
+)
+def test_english_plurals_match(make_article, title, keyword):
+    """英語のフィードは複数形で書くことが多いので、s / es にもマッチする"""
+    assert keyword in matched_keywords_in_article(make_article(title=title, summary=None))
 
 
-def test_matched_keywords_in_article_new_vocabulary(make_article):
-    """PR3で追加した語彙（2024年以降の主要モデル・技術用語）がマッチすること。"""
-    cases = [
-        ("Metaが新しいLlamaモデルを発表", "Llama"),
-        ("フランスのMistralが資金調達", "Mistral"),
-        ("中国DeepSeekの新モデル", "DeepSeek"),
-        ("OpenAIの動画生成モデルSora", "Sora"),
-        ("MCPサーバーを実装する", "MCP"),
-        ("LoRAで効率的にファインチューニング", "LoRA"),
-        ("拡散モデルによる画像生成の仕組み", "拡散モデル"),
-        ("強化学習エージェントの設計", "強化学習"),
-        ("マルチモーダルLLMの活用事例", "マルチモーダル"),
-        ("埋め込みベクトルの活用", "埋め込み"),
-        ("量子化による軽量化手法", "量子化"),
-        ("Machine Learningの基礎から学ぶ", "Machine Learning"),
-    ]
-    for title, expected_kw in cases:
-        article = make_article(title=title, summary=None)
-        assert expected_kw in matched_keywords_in_article(article), title
+def test_japanese_adjacent_keywords_still_match(make_article):
+    """日本語に直接つながる英語の語もマッチする（日本語は単語の間に空白を入れないため）"""
+    article = make_article(title="米SECがビットコイン現物ETFを承認", summary=None)
+
+    assert {"SEC", "ビットコイン", "ETF"} <= set(matched_keywords_in_article(article))
 
 
-def test_matched_keywords_in_article_no_match(make_article):
+def test_ignore_keywords_are_not_counted(make_article):
+    """配信元の名前（SEC のプレスリリースの「SEC」）は数えない"""
+    article = make_article(title="SEC Announces Enforcement Results", summary=None)
+
+    assert matched_keywords_in_article(article) == ["SEC"]
+    assert matched_keywords_in_article(article, frozenset({"SEC"})) == []
+
+
+def test_matched_keywords_no_match(make_article):
     article = make_article(title="今日の天気について", summary="全国的に晴れ")
 
     assert matched_keywords_in_article(article) == []
 
 
 def test_filter_by_keywords_excludes_articles_without_keywords(make_article):
-    ai_article = make_article(title="ChatGPTの新機能")
-    non_ai_article = make_article(title="今日の天気")
+    market = make_article(title="日銀が利上げを決定")
+    other = make_article(title="今日の天気")
 
-    result = filter_by_keywords([ai_article, non_ai_article])
-
-    assert result == [ai_article]
+    assert filter_by_keywords([market, other]) == [market]
 
 
 def test_filter_by_keywords_passes_everything_from_exempt_source(make_article):
-    """免除フィードはキーワード0件でも通過すること。"""
-    non_ai = make_article(title="Sparse Matrix Reordering for Cache Locality", source="arXiv CS.AI")
+    """免除フィードはキーワード0件でも通過する"""
+    off_topic = make_article(title="Grvt launches RWA perpetuals", source="CoinDesk")
 
-    result = filter_by_keywords([non_ai], exempt_sources=frozenset({"arXiv CS.AI"}))
-
-    assert result == [non_ai]
+    assert filter_by_keywords([off_topic], exempt_sources=frozenset({"CoinDesk"})) == [off_topic]
 
 
 def test_filter_by_keywords_still_filters_non_exempt_sources(make_article):
-    """免除は指定した情報源にだけ効き、他フィードのフィルタは維持されること。"""
-    exempt_non_ai = make_article(title="今日の天気", source="arXiv CS.AI")
-    other_non_ai = make_article(title="今日の天気", source="Zenn")
-    other_ai = make_article(title="ChatGPTの新機能", source="Zenn")
+    exempt_off_topic = make_article(title="今日の天気", source="CoinDesk")
+    other_off_topic = make_article(title="今日の天気", source="Bloomberg（Markets）")
+    other_market = make_article(title="Fed signals rate hikes", source="Bloomberg（Markets）")
 
     result = filter_by_keywords(
-        [exempt_non_ai, other_non_ai, other_ai],
-        exempt_sources=frozenset({"arXiv CS.AI"}),
+        [exempt_off_topic, other_off_topic, other_market],
+        exempt_sources=frozenset({"CoinDesk"}),
     )
 
-    assert result == [exempt_non_ai, other_ai]
+    assert result == [exempt_off_topic, other_market]
+
+
+def test_filter_by_keywords_applies_ignore_per_source(make_article):
+    sec_only = make_article(title="SEC Proposes Disclosure Reforms", source="SEC（プレスリリース）")
+    sec_crypto = make_article(title="SEC Approves Bitcoin ETF", source="SEC（プレスリリース）")
+    elsewhere = make_article(title="SEC Proposes Disclosure Reforms", source="Bloomberg（Markets）")
+
+    result = filter_by_keywords(
+        [sec_only, sec_crypto, elsewhere],
+        ignore_by_source={"SEC（プレスリリース）": frozenset({"SEC"})},
+    )
+
+    # 「SEC」だけの記事は SEC のフィードでは落ち、他のフィードでは通る
+    assert result == [sec_crypto, elsewhere]
 
 
 def test_filter_by_keywords_defaults_to_no_exemption(make_article):
-    """exempt_sources 未指定時は従来どおり全フィードにフィルタが掛かること（回帰防止）。"""
-    non_ai = make_article(title="今日の天気", source="arXiv CS.AI")
-
-    assert filter_by_keywords([non_ai]) == []
-
-
-def test_agent_word_boundary_gap_is_covered_by_exemption(make_article):
-    """免除が必要になった具体的な取りこぼし。
-
-    'Agentic' / 'Agents' は単語境界マッチで 'Agent' に当たらない。日本語の
-    'エージェント' はCJKなので境界条件が課されずマッチするため、英語だけが厳しい
-    非対称が残っている。この非対称そのものの解消は別途扱い、ここでは免除で
-    arXiv の取りこぼしが解消されることだけを固定する。
-    """
-    article = make_article(
-        title="IDEAgent: Agentic Quality-Diversity Search for Research Idea Generation",
-        source="arXiv CS.AI",
-    )
-
-    assert matched_keywords_in_article(article) == []
-    assert filter_by_keywords([article], exempt_sources=frozenset({"arXiv CS.AI"})) == [article]
+    assert filter_by_keywords([make_article(title="今日の天気", source="CoinDesk")]) == []
 
 
 def test_count_undated_by_source(make_article):
-    a1 = make_article(source="Zenn", published_offset=None)
-    a2 = make_article(source="Zenn", published_offset=None)
-    a3 = make_article(source="ITmedia AI+", published_offset=timedelta(hours=-1))
+    a1 = make_article(source="CoinPost", published_offset=None)
+    a2 = make_article(source="CoinPost", published_offset=None)
+    a3 = make_article(source="CoinDesk", published_offset=timedelta(hours=-1))
 
-    counts = count_undated_by_source([a1, a2, a3])
-
-    assert counts == {"Zenn": 2}
+    assert count_undated_by_source([a1, a2, a3]) == {"CoinPost": 2}

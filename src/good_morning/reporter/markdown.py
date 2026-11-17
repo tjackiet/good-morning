@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from good_morning.models import Article
 from good_morning.paths import OUTPUTS_DIR
 from good_morning.timeutil import JST, format_jst, weekday_ja
 
@@ -124,29 +123,3 @@ def save_report(content: str, date: datetime, output_dir: Path | None = None) ->
     filepath = output_dir / report_filename(date)
     filepath.write_text(content, encoding="utf-8")
     return filepath
-
-
-def format_article(article: Article) -> list[str]:
-    """1記事をMarkdown形式にフォーマット
-
-    aion から引き継いだもの。主要ニュースのセクションはフェーズ4でこれを作り直す
-    （「Why it matters」→「暗号資産への示唆」）。
-    """
-    lines = []
-
-    lines.append(f"### [{article.title}]({article.url})")
-    lines.append("")
-
-    pub_date = article.published.strftime("%Y-%m-%d") if article.published else "不明"
-    lines.append(f"**{article.source}** | {pub_date}")
-    lines.append("")
-
-    if article.ai_summary:
-        lines.append(article.ai_summary)
-        lines.append("")
-
-    if article.why_it_matters:
-        lines.append(f"> **Why it matters**: {article.why_it_matters}")
-        lines.append("")
-
-    return lines

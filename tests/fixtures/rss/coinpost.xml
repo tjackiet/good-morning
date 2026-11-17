@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>CoinPost｜仮想通貨ビットコインニュース・投資情報</title>
+	<atom:link href="https://coinpost.jp/?feed=rss2" rel="self" type="application/rss+xml" />
+	<link>https://coinpost.jp</link>
+	<description>国内最大手の仮想通貨（暗号資産）メディア。ビットコイン、イーサリアム、XRPなどのニュース速報・価格情報・買い方・初心者解説を毎日配信。</description>
+	<lastBuildDate>Tue, 17 Nov 2026 23:10:36 +0900</lastBuildDate>
+	<language>ja</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.4</generator>
+
+<image>
+	<url>https://cdn.coinpost.jp/wp-content/uploads/2020/03/cropped-coinpost_icon2020-9-32x32.png</url>
+	<title>CoinPost｜仮想通貨ビットコインニュース・投資情報</title>
+	<link>https://coinpost.jp</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<atom:link rel="hub" href="https://pubsubhubbub.appspot.com"/>
+<atom:link rel="hub" href="https://pubsubhubbub.superfeedr.com"/>
+<atom:link rel="self" href="https://coinpost.jp/?feed=rss2"/>
+	<item>
+		<title>マネロン対策の不備を指摘　米民主党議員4名、SECの株式トークン化免除措置巡り</title>
+		<link>https://coinpost.jp/?p=748431</link>
+		<pubDate>Tue, 17 Nov 2026 21:55:10 +0900</pubDate>
+		<dc:creator><![CDATA[菊谷ルイス]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748431</guid>
+		<description><![CDATA[米民主党の上院議員4人が、米SECの株式トークン化免除措置は不正資金対策の規定が不明確だとして、アトキンス委員長に書簡を送って抗議した。トークン化証券の規制変更を、透明な規則制定手続きで進めるよう要求している。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイントSECの免除措置、トークン受取先の制限に言及せず議員、トークン化証券の規制変更に透明な手続きを要請免除措置に懸念米民主党のアルソブルックス、ギャレゴ、ワーナー、コルテス・マスト各上院議員は先週、米証券取引委員会（SEC）のポール・アトキンス委員長に書簡を送り、ブロックチェーン上でトークン化した株式を取引する一部の場に取引所登録を求めない5年間の免除措置は、不正資金対策の規定が不明確だとの懸念を示した。ポリティコが16日に報じ、SECはコメントを控えたという。書簡は、SECが9月に導入した...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/11/midterm-new-clarity-act-US-congress-1.jpg"/>
+		</item>
+		<item>
+		<title>ビットコイン含み益比率、52％に低下　過去1年有数の下げ幅＝アナリスト</title>
+		<link>https://coinpost.jp/?p=748408</link>
+		<pubDate>Tue, 17 Nov 2026 17:50:32 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[BTC]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748408</guid>
+		<description><![CDATA[クリプトクアント認定アナリストのアドラーJr.氏が分析。ビットコインの供給のうち含み益にある割合は1週間で7ポイント下がり52％に。長期保有者の保有量も90日来の低水準となり、含み益と含み損の分岐点が近づく。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント長期保有者の保有量、週間7万3,900BTC減52％以下の日は過去1年の11％のみ含み益比率、1週間で7ポイント低下オンチェーン分析企業クリプトクアントの認定アナリスト、アクセル・アドラーJr.（AxelAdlerJr.）氏は17日、ビットコイン（BTC）の流通供給量のうち含み益の状態にあるコインの割合が52％まで下がったとの分析を公表した。1週間で7ポイント低下し、過去1年で最も急な下げの一つとなった。長期保有者（LTH）の保有量も減少した。同氏によると、LTHの保有量は1週間で7万3...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/06/bitcoin-down-but-not-that-bad-1.jpg"/>
+		</item>
+		<item>
+		<title>GTA6の偽ダウンロード横行、仮想通貨ウォレット狙うマルウェア</title>
+		<link>https://coinpost.jp/?p=748395</link>
+		<pubDate>Tue, 17 Nov 2026 17:31:24 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748395</guid>
+		<description><![CDATA[#cp-summary-2025{all:revert;box-sizing:border-box;width:100%;background:#f8f9fb;border-left:3pxsolid#0d2d4f;border-radiu...]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント偽インストーラーの正体はWARDENStealer1SOLで流出版を売る偽サイト、資産を抜き取りGTA6便乗の偽インストーラーセキュリティ企業のサイネット（Cynet）は13日、19日に発売される人気ゲーム「グランド・セフト・オート6（GTA6）」の無料ダウンロードを装い、仮想通貨ウォレットの情報を盗むマルウェアが配布されていると報告した。発売を前に、同作の人気に便乗した詐欺が相次いでいる。同社が追跡したケースでは、グーグルのノートブックサービス「Colab」上のページがGTA6の実行フ...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/11/GTA6-shutterstock_2855177203.jpg"/>
+		</item>
+		<item>
+		<title>「ビットコインのスーパーサイクルは健在」資産運用大手のストラテジストが強調</title>
+		<link>https://coinpost.jp/?p=748355</link>
+		<pubDate>Tue, 17 Nov 2026 17:30:08 +0900</pubDate>
+		<dc:creator><![CDATA[幸田直子]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[BTC]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748355</guid>
+		<description><![CDATA[カナダの資産運用会社のストラテジスト、ジェームス・ソーン氏は直近の急落後もビットコインへの強気姿勢を維持している。ファンダメンタルズに変化はないとし、ビットコインのスーパーサイクルは崩れていないと強調した。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイントソーン氏はビットコインのスーパーサイクル継続を強調逆三尊を形成中で、5万7,000ドル超なら問題ないとの見方ファンダメンタルズは変わっていないカナダの富裕層向け資産運用会社ウェリントン・アルタス・プライベート・ウェルスのチーフ・マーケット・ストラテジストを務めるジェームス・ソーン（JamesE.Thorne）氏は、仮想通貨メディア「ビットコイン・マガジンTV」のインタビューで、ビットコインを取り巻くファンダメンタルズに変化はないとの見方を示した。「スーパーサイクルのシナリオは依然として崩...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2022/12/bitcoin1.jpg"/>
+		</item>
+		<item>
+		<title>金・銀・プラチナの次は何か　三井物産が見る実物資産トークン化の条件</title>
+		<link>https://coinpost.jp/?p=743542</link>
+		<pubDate>Tue, 17 Nov 2026 17:00:26 +0900</pubDate>
+		<dc:creator><![CDATA[Ritsuki.Kumazawa]]></dc:creator>
+				<category><![CDATA[独自取材]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=743542</guid>
+		<description><![CDATA[金・銀・プラチナの次に、三井物産はどの実物資産をトークン化するのか。エネルギーや非鉄金属も視野に入れつつ、当面は貴金属に重点を置く考えを、竹内隆太郎氏と和歌伸介氏が語った。ジパングコインの担保利用にも迫る。]]></description>
+				<content:encoded><![CDATA[
+金（ゴールド）価格に連動する暗号資産「ジパングコイン（ZPG）」は、三井物産の100％子会社である三井物産デジタル・コモディティーズが発行している。1ZPGが金1グラムと同等の価値になるよう設計されており、24時間365日、小口での売買に対応する。国内では8社の暗号資産取引所が取り扱っている。一定の要件を満たす暗号資産の譲渡益を20.315％の申告分離課税とする税制改正法は2026年3月に公布され、7月には前提となる改正金融商品取引法も成立した。金ETFとの税率差が解消に向かうなか、オンチェーンの金が何を...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/10/mitsui_thumbnail_1110.jpg"/>
+		</item>
+		<item>
+		<title>グレースケール「仮想通貨市場のファンダメンタルズは堅調」と見解　下落要因を分析</title>
+		<link>https://coinpost.jp/?p=748224</link>
+		<pubDate>Tue, 17 Nov 2026 16:00:32 +0900</pubDate>
+		<dc:creator><![CDATA[A.Yamada]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[BTC]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748224</guid>
+		<description><![CDATA[グレースケールのリサーチ責任者は、11月の仮想通貨下落をステーブルコイン流出やAI関連株安の波及など複数要因が重なったと分析。ファンダメンタルズは堅調との見解も示した。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイントステーブルコイン流出など複数の下落要因仮想通貨の評価額は売られ過ぎの水準へ11月初旬以降の相場を分析米暗号資産（仮想通貨）運用大手グレースケールのリサーチ責任者であるザック・パンドル氏は16日、仮想通貨市場は下落しているが、ファンダメンタルズは堅調であるとのレポートを発表した。まずパンドル氏は、過去の一部の下落局面とは異なり、11月初旬以降の今回の評価額を押し下げた単一の要因は見当たらなかったと指摘。むしろ、この下落は主にステーブルコインの流出やAI関連株の低迷による波及効果など、複数の...]]></content:encoded>
+			<enclosure length="0" type="image/png" url="https://cdn.coinpost.jp/wp-content/uploads/2023/12/grayscale-etf-bitcoin.png"/>
+		</item>
+		<item>
+		<title>エバーノース、保有XRPの減損累計約803億円　簿価は取得時の4割</title>
+		<link>https://coinpost.jp/?p=748384</link>
+		<pubDate>Tue, 17 Nov 2026 16:00:01 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[XRP]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748384</guid>
+		<description><![CDATA[ナスダック上場のXRP保有企業エバーノースが初の四半期報告書を提出した。9月末の保有XRPの簿価は約3億4,189万ドルで、減損の累計は約5億ドルに達した。売却を伴わない会計処理で、9カ月の純損失は評価益により約3,287万ドルだった。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント1XRP当たり簿価約0.99ドル、取得単価は約2.44ドル評価益2.4億ドルで9カ月の純損失は約3,287万ドルXRP簿価、取得原価の約4割にナスダック上場の仮想通貨関連株で、XRPを保有・運用するエバーノースは13日、米証券取引委員会（SEC）に初の四半期報告書（フォーム10-Q）を提出した。9月末時点の保有量は346,284,972XRP。帳簿上の価値（簿価）は約3億4,189万ドル（約544億円）で、取得時に計上した約8億4,658万ドルから約6割減った。2026年1月から9月まで...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/01/xrp-cnbc-hottest-trad.jpg"/>
+		</item>
+		<item>
+		<title>ビットコイン弱気相場抜けず、5万ドル台を想定＝ウィンターミュート</title>
+		<link>https://coinpost.jp/?p=748370</link>
+		<pubDate>Tue, 17 Nov 2026 15:00:36 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[BTC]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748370</guid>
+		<description><![CDATA[ウィンターミュートは16日の週次レポートで、ビットコインが200週移動平均線を割り込み弱気相場が続いているとの見方を示した。12月の米利上げ観測とETFの資金流出を背景に、5万ドル台への下押しを想定する。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント現物ETFは2026年累計で約19億ドルの純流出防御姿勢の解除条件は200週線回復とETF流入など金利上昇がビットコインを圧迫仮想通貨マーケットメイカーのウィンターミュート（Wintermute）は16日、OTCデスクによる週次マーケットレポートを公開した。ビットコイン（BTC）は週間で12.7％下落して6万5,400ドルで引け、200週移動平均線（約6万8,000ドル）を下回った。同じ週のS＆P500は2.5％高。同社は「弱気相場をまだ抜けていない」と述べ、7月の安値からの上昇はだまし...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/08/bitcoin-market-1984524992.jpg"/>
+		</item>
+		<item>
+		<title>発想力だけでは足りない　CoinPostデザイナーが語る「実行力」の中身</title>
+		<link>https://coinpost.jp/?p=745188</link>
+		<pubDate>Tue, 17 Nov 2026 13:30:06 +0900</pubDate>
+		<dc:creator><![CDATA[CoinPost編集部]]></dc:creator>
+				<category><![CDATA[CoinPost]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=745188</guid>
+		<description><![CDATA[グラフィックから会場の空間デザイン、発注までを担うCoinPost制作部のデザイナーに、入社の決め手と日々の仕事の進め方を聞いた。WebXやMoneyXの制作現場で求められる発想力と実行力とは。]]></description>
+				<content:encoded><![CDATA[
+カンファレンスのキービジュアルは、どのようにして生まれるのか。ポスターやパンフレット、会場の装飾、来場者が手に取るノベルティ。イベントで目に触れるものの多くは、1枚のビジュアルから枝分かれしていく。CoinPost制作部のデザイナー、陳慧如（CHENHUIRU）さんは、その起点をつくり、外部への発注や会場の空間設計までを受け持つ。デザインを考えるだけでなく、形になるところまで見通す。その働き方はどのように身についたのか。陳さんに日々の仕事の進め方を聞いた。陳慧如（CHENHUIRU）株式会社CoinPos...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/10/designer_coinpost_interview_2026_11_17_thumbnail.jpg"/>
+		</item>
+		<item>
+		<title>米CFTC、Backpackの仮想通貨デリバティブ取引所・清算機関を承認</title>
+		<link>https://coinpost.jp/?p=748275</link>
+		<pubDate>Tue, 17 Nov 2026 13:12:25 +0900</pubDate>
+		<dc:creator><![CDATA[A.Yamada]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748275</guid>
+		<description><![CDATA[米商品先物取引委員会は、仮想通貨サービス企業バックパックの米国事業にデリバティブ取引所と清算機関の資格を付与した。同社は無期限先物などの提供を計画している。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント「指定契約市場（DCM）」などのライセンス付与CFTC委員長「ブロックチェーン技術に規制の道筋」米国で無期限先物を提供へ暗号資産（仮想通貨）ウォレットや取引所などを手がける「バックパック（Backpack）」は16日、米商品先物取引委員会（CFTC）から、米国におけるデリバティブ取引所・清算機関としての運営承認を得たと発表した。この材料を受け、バックパックのガバナンストークンであるBPは急騰し一時45%上昇した。グローバルな取引プラットフォームを米国に展開するための規制上の基盤が確立され...]]></content:encoded>
+			<enclosure length="0" type="image/png" url="https://cdn.coinpost.jp/wp-content/uploads/2025/12/BackPack_1223_thumbnail.png"/>
+		</item>
+		<item>
+		<title>ドイツ連邦議会、出所不明資産の差し押さえ法案可決　仮想通貨も対象</title>
+		<link>https://coinpost.jp/?p=748317</link>
+		<pubDate>Tue, 17 Nov 2026 13:00:31 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748317</guid>
+		<description><![CDATA[ドイツ連邦議会は12日、出所の合法性に疑いがある高額資産を、刑事手続きを経ずに関税当局が差し押さえられる法案を可決した。EUのMiCA規則が定める暗号資産も対象と明記。施行には連邦参議院の同意が必要となる。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイントMiCA定義の暗号資産を差し押さえ対象に明記没収は財政裁判所の合議体が判断、2027年施行予定独関税当局に資産差し押さえ権限ドイツ連邦議会（下院）は12日、関税行政の強化と金融犯罪対策を柱とする政府法案を可決した。出所の合法性に合理的な疑いがある高額資産について、刑事手続きを始めなくても関税当局が差し押さえられる仕組みを新設する。対象には仮想通貨も含まれる。採決では、連立与党のキリスト教民主・社会同盟（CDU・CSU）と社会民主党（SPD）に加え、野党の極右政党ドイツのための選択肢（Af...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2020/10/Germany2020-1.jpg"/>
+		</item>
+		<item>
+		<title>米最高裁、カストディアバンクの対FRB裁判の上訴を受理せず　マスター口座巡る係争</title>
+		<link>https://coinpost.jp/?p=748280</link>
+		<pubDate>Tue, 17 Nov 2026 12:40:31 +0900</pubDate>
+		<dc:creator><![CDATA[K.Kobayashi]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748280</guid>
+		<description><![CDATA[米最高裁判所は、ブロックチェーンインフラ企業カストディアバンクがFRBのマスター口座開設を巡って起こした訴訟について上訴を受理しないことを公表。コメントや意見は述べていない。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント今回の裁判は2022年に開始最高裁のコメントはなしカストディアバンクの裁判米最高裁判所は16日、ブロックチェーンインフラ企業カストディアバンク（CustodiaBank）が米連邦準備理事会（FRB）のマスター口座開設を巡ってFRBとカンザスシティ連邦準備銀行に対して起こした訴訟について、上訴を受理しないことを公表した。最高裁はコメントや意見を述べることなく、受理しない裁判のリストにカストディアバンクの訴訟を含めて発表を行ったのみ。2022年から始まった今回の訴訟は、これで終了した。最高裁...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2019/08/frb.jpg"/>
+		</item>
+		<item>
+		<title>イーサリアムの量子対策、ヴィタリックが早期実装を狙える新方式を支持</title>
+		<link>https://coinpost.jp/?p=748286</link>
+		<pubDate>Tue, 17 Nov 2026 12:00:46 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[ETH]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748286</guid>
+		<description><![CDATA[イーサリアム共同創設者のブテリン氏が、量子耐性署名や証明を集約する改善提案EIP-8288の実装方式としてleanPCSの支持に転じた。署名データが最大6KBに膨らむ課題への対応策で、leanSTARKより早く実装できる可能性があるという。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイントブテリン氏、EIP-8288の実装方式としてleanPCS支持に転換量子耐性化で署名は65バイトから最大6KBに膨らむ見通しブテリン氏、ISA決定後にleanSTARKを追加する道筋を提示ブテリン氏、leanPCS支持に転換イーサリアム（ETH）共同創設者のヴィタリック・ブテリン氏は16日、量子コンピュータへの耐性を持つ署名や証明を効率よく扱う手法「leanPCS」を支持する立場に転じたと、Xへの投稿で明らかにした。同氏が共同執筆した改善提案「EIP-8288」を実装する方式の一つにあた...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2022/09/vitalik_20220926_041.jpg"/>
+		</item>
+		<item>
+		<title>予測市場に止まらず　カルシ、2カ月以内に株取引を提供開始へ</title>
+		<link>https://coinpost.jp/?p=748223</link>
+		<pubDate>Tue, 17 Nov 2026 11:30:44 +0900</pubDate>
+		<dc:creator><![CDATA[菊谷ルイス]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748223</guid>
+		<description><![CDATA[予測市場プラットフォームのカルシが、ニューヨーク拠点の小規模な証券会社を7月に買収し、2カ月以内に株式取引を始める計画だと米紙ウォール・ストリート・ジャーナルが報じた。無期限先物に続き、複数の資産を扱う金融取引所の構築を進める。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント株式や上場投資信託の取引を提供する計画複数の資産を扱う金融取引所の構築を推進カルシの株式参入予測市場プラットフォームのカルシが7月、米ニューヨークを拠点とする小規模な証券会社FBSecuritiesを買収し、今後2カ月以内に株式取引の提供を始める計画だ。米紙ウォール・ストリート・ジャーナルが17日、事情に詳しい関係者の話として報じた。今回の参入は、仮想通貨発祥の金融派生商品で、海外で人気が急拡大している無期限先物の展開に続く動きだ。無期限先物は満期がなく24時間取引でき、レバレッジで損益...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/09/kalshi-new-funding-.jpg"/>
+		</item>
+		<item>
+		<title>管轄権争い激化　米上院民主党議員9名、予測市場の地理的制限撤廃を命じたCFTCに撤回要求</title>
+		<link>https://coinpost.jp/?p=748211</link>
+		<pubDate>Tue, 17 Nov 2026 11:00:50 +0900</pubDate>
+		<dc:creator><![CDATA[菊谷ルイス]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748211</guid>
+		<description><![CDATA[9名の上院民主党議員が16日、米CFTCに予測市場の地理的制限撤廃命令の撤回と、規制権限を主張する取り組みの停止を求める書簡を送った。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント議員9人がCFTCに予測市場の権限主張停止を要請CFTCの制限撤廃命令は州法を損なうと議員が主張CFTCへの書簡9名の米上院民主党議員は16日、米商品先物取引委員会（CFTC）に対し、予測市場に対する規制権限を主張する取り組みの停止を求める書簡を送った。米経済紙ウォール・ストリート・ジャーナルが報道した。発端は、CFTCが5日に予測市場へ、プラットフォーム上の地理的制限を30日以内にやめるよう命じたことだ。議員らはCFTCのマイケル・セリグ委員長宛ての書簡で、この一方的な決定は有効な裁判...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2026/01/congress-working-night.jpg"/>
+		</item>
+		<item>
+		<title>ジーキャッシュ財務企業サイファーパンク初の営業黒字　8967ZECを採掘</title>
+		<link>https://coinpost.jp/?p=748260</link>
+		<pubDate>Tue, 17 Nov 2026 10:40:43 +0900</pubDate>
+		<dc:creator><![CDATA[Enzo]]></dc:creator>
+				<category><![CDATA[仮想通貨情報]]></category>
+		<category><![CDATA[ZEC]]></category>
+
+		<guid isPermaLink="false">https://coinpost.jp/?p=748260</guid>
+		<description><![CDATA[ジーキャッシュ（ZEC）財務企業のサイファーパンク・テクノロジーズが2026年3Q決算を発表。8月に始めたマイニングで990万ドルを計上し、初の営業黒字に転じた。1ZEC当たりの採掘原価は104ドル、保有量は流通供給量の2.01％に達した。]]></description>
+				<content:encoded><![CDATA[
+この記事のポイント1ZEC当たり採掘原価104ドル（減価償却前）、稼働率95％保有34万ZEC超、流通供給量の2.01％に初の営業黒字、純利益3億ドル超ジーキャッシュ（ZEC）を財務資産として蓄積する米ナスダック上場の仮想通貨関連株、サイファーパンク・テクノロジーズ（CypherpunkTechnologies、CYPH）は16日、2026年第3四半期（7月から9月）の決算を発表した。8月に始めたZECマイニングで収益990万ドルを計上し、営業損益は260万ドルの黒字となった。営業黒字は同社として初めて。...]]></content:encoded>
+			<enclosure length="0" type="image/jpeg" url="https://cdn.coinpost.jp/wp-content/uploads/2020/06/zec-new-wallet.jpg"/>
+		</item>
+	</channel>
+</rss>

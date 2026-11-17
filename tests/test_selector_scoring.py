@@ -1,8 +1,9 @@
-"""good_morning.selector.scoring のテスト"""
+"""good_morning.selector.scoring のテスト（重みは config/keywords.yaml の weight）"""
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from good_morning.selector.keywords import KEYWORD_WEIGHTS, load_keyword_config
 from good_morning.selector.scoring import (
     EXEMPT_SOURCE_BASE_POINTS,
     RECENCY_MAX_POINTS,
@@ -15,39 +16,53 @@ from good_morning.selector.scoring import (
 )
 
 JST = ZoneInfo("Asia/Tokyo")
+NOW = datetime(2026, 11, 17, 12, 0, tzinfo=JST)
 
 
-def test_keyword_weight_is_higher_for_proper_nouns():
-    """固有名詞は汎用語より重いこと。"""
-    assert keyword_weight("Anthropic") > keyword_weight("AI")
-    assert keyword_weight("DeepSeek") > keyword_weight("ロボット")
+def test_weights_come_from_yaml():
+    assert KEYWORD_WEIGHTS["暗号資産"] == 3.0
+    assert KEYWORD_WEIGHTS["金利・為替"] == 2.0
+    assert keyword_weight("ビットコイン") == 3.0
+    assert keyword_weight("ドル円") == 2.0
 
 
 def test_keyword_weight_falls_back_for_unknown_keyword():
     assert keyword_weight("存在しないキーワード") == 1.0
 
 
-def test_keyword_score_counts_title_matches_more_than_summary(make_article):
-    in_title = make_article(title="Anthropicの新モデル", summary="詳細は後日")
-    in_summary = make_article(title="新モデルの話", summary="Anthropicが発表した")
+def test_old_list_format_is_still_readable(tmp_path):
+    """aion の形式（カテゴリ: [語, ...]）も読める。重みは既定の 1.0"""
+    path = tmp_path / "keywords.yaml"
+    path.write_text("keywords:\n  基本:\n    - AI\n", encoding="utf-8")
 
-    assert keyword_score(in_title) == keyword_weight("Anthropic") * TITLE_MULTIPLIER
-    assert keyword_score(in_summary) == keyword_weight("Anthropic")
-    assert keyword_score(in_title) > keyword_score(in_summary)
+    assert load_keyword_config(path) == {"基本": (1.0, ["AI"])}
+
+
+def test_keyword_score_counts_title_matches_more_than_summary(make_article):
+    in_title = make_article(title="ビットコインが反発", summary="詳細は後日")
+    in_summary = make_article(title="相場の話", summary="ビットコインが反発した")
+
+    assert keyword_score(in_title) == keyword_weight("ビットコイン") * TITLE_MULTIPLIER
+    assert keyword_score(in_summary) == keyword_weight("ビットコイン")
 
 
 def test_keyword_score_does_not_double_count_same_keyword(make_article):
-    """タイトルと概要の両方に出る語はタイトル側の重みだけで数えること。"""
-    both = make_article(title="Anthropicの新モデル", summary="Anthropicが発表")
+    both = make_article(title="ビットコインが反発", summary="ビットコインの値動き")
 
-    assert keyword_score(both) == keyword_weight("Anthropic") * TITLE_MULTIPLIER
+    assert keyword_score(both) == keyword_weight("ビットコイン") * TITLE_MULTIPLIER
 
 
 def test_keyword_score_accumulates_over_distinct_keywords(make_article):
-    one = make_article(title="Anthropicの発表")
-    two = make_article(title="AnthropicとOpenAIの発表")
+    one = make_article(title="ビットコインが反発")
+    two = make_article(title="FOMC後にビットコインが反発")
 
     assert keyword_score(two) > keyword_score(one)
+
+
+def test_keyword_score_ignores_given_keywords(make_article):
+    article = make_article(title="SEC Approves Bitcoin ETF")
+
+    assert keyword_score(article, frozenset({"SEC"})) < keyword_score(article)
 
 
 def test_keyword_score_is_zero_without_matches(make_article):
@@ -55,15 +70,13 @@ def test_keyword_score_is_zero_without_matches(make_article):
 
 
 def test_recency_score_decays_with_age(make_article):
-    now = datetime(2026, 7, 27, 12, 0, tzinfo=JST)
     fresh = make_article(title="x")
-    fresh.published = now
+    fresh.published = NOW
     day_old = make_article(title="x")
-    day_old.published = now - timedelta(hours=24)
+    day_old.published = NOW - timedelta(hours=24)
 
-    assert recency_score(fresh, now=now) == RECENCY_MAX_POINTS
-    # 半減期は24時間
-    assert recency_score(day_old, now=now) == RECENCY_MAX_POINTS / 2
+    assert recency_score(fresh, now=NOW) == RECENCY_MAX_POINTS
+    assert recency_score(day_old, now=NOW) == RECENCY_MAX_POINTS / 2  # 半減期は24時間
 
 
 def test_recency_score_is_zero_without_published_date(make_article):
@@ -71,34 +84,30 @@ def test_recency_score_is_zero_without_published_date(make_article):
 
 
 def test_recency_score_clamps_future_dates(make_article):
-    now = datetime(2026, 7, 27, 12, 0, tzinfo=JST)
     future = make_article(title="x")
-    future.published = now + timedelta(hours=5)
+    future.published = NOW + timedelta(hours=5)
 
-    assert recency_score(future, now=now) == RECENCY_MAX_POINTS
+    assert recency_score(future, now=NOW) == RECENCY_MAX_POINTS
 
 
 def test_score_article_gives_base_points_to_exempt_sources(make_article):
-    """免除フィードはマッチ0件がありうるので、スコア0で常に沈まないこと。"""
-    now = datetime(2026, 7, 27, 12, 0, tzinfo=JST)
-    article = make_article(title="Sparse Matrix Reordering", source="arXiv CS.AI")
-    article.published = now
+    """免除フィードはマッチ0件がありうるので、スコア0で常に沈まないこと"""
+    article = make_article(title="Grvt launches RWA perpetuals", source="CoinDesk")
+    article.published = NOW
 
-    without = score_article(article, now=now)
-    with_exemption = score_article(article, exempt_sources=frozenset({"arXiv CS.AI"}), now=now)
+    without = score_article(article, now=NOW)
+    with_exemption = score_article(article, exempt_sources=frozenset({"CoinDesk"}), now=NOW)
 
     assert with_exemption - without == EXEMPT_SOURCE_BASE_POINTS
-    assert with_exemption > 0
 
 
 def test_score_articles_assigns_score_field(make_article):
-    now = datetime(2026, 7, 27, 12, 0, tzinfo=JST)
-    ai = make_article(title="Anthropicの新モデル")
-    ai.published = now
-    non_ai = make_article(title="今日の天気")
-    non_ai.published = now
+    market = make_article(title="日銀が利上げを決定")
+    market.published = NOW
+    other = make_article(title="今日の天気")
+    other.published = NOW
 
-    score_articles([ai, non_ai], now=now)
+    score_articles([market, other], now=NOW)
 
-    assert ai.score > non_ai.score
-    assert non_ai.score == RECENCY_MAX_POINTS  # キーワード0件でも新しさ分は付く
+    assert market.score > other.score
+    assert other.score == RECENCY_MAX_POINTS  # キーワード0件でも新しさ分は付く

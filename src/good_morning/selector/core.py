@@ -29,6 +29,12 @@ def keyword_filter_exempt_sources(config_path: Path | None = None) -> frozenset[
     return frozenset(feed.name for feed in config.feeds if not feed.keyword_filter)
 
 
+def keyword_ignore_by_source(config_path: Path | None = None) -> dict[str, frozenset[str]]:
+    """フィードごとに数えないキーワード（feeds.yaml の ignore_keywords）"""
+    config = load_feeds_config(config_path)
+    return {feed.name: frozenset(feed.ignore_keywords) for feed in config.feeds if feed.ignore_keywords}
+
+
 def collect(days: int = 1, keyword_filter: bool = True) -> list[Article]:
     """メイン収集関数: フィード取得 + フィルタリング"""
     logger.info("RSSフィードを取得中...")
@@ -44,13 +50,14 @@ def collect(days: int = 1, keyword_filter: bool = True) -> list[Article]:
     logger.info("直近%d日間の記事: %d 件", days, len(filtered))
 
     exempt = keyword_filter_exempt_sources()
+    ignore = keyword_ignore_by_source()
 
     if keyword_filter:
-        filtered = filter_by_keywords(filtered, exempt_sources=exempt)
+        filtered = filter_by_keywords(filtered, exempt_sources=exempt, ignore_by_source=ignore)
         detail = f"（{', '.join(sorted(exempt))} はキーワードフィルタ免除）" if exempt else ""
         logger.info("キーワード一致: %d 件%s", len(filtered), detail)
 
-    score_articles(filtered, exempt_sources=exempt)
+    score_articles(filtered, exempt_sources=exempt, ignore_by_source=ignore)
     return rank_articles(filtered)
 
 
@@ -63,10 +70,13 @@ def explain_selection(days: int = 1) -> list[Article]:
     articles = fetch_all_feeds()
     recent_ids = {id(a) for a in filter_recent_articles(articles, days=days)}
     exempt = keyword_filter_exempt_sources()
-    score_articles(articles, exempt_sources=exempt)
+    ignore = keyword_ignore_by_source()
+    score_articles(articles, exempt_sources=exempt, ignore_by_source=ignore)
 
     for article in articles:
-        article.matched_keywords = matched_keywords_in_article(article)
+        article.matched_keywords = matched_keywords_in_article(
+            article, ignore.get(article.source, frozenset())
+        )
 
         if article.published is None:
             article.excluded_reason = REASON_NO_DATE
