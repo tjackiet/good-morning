@@ -25,14 +25,51 @@ def fixtures_dir() -> Path:
     return FIXTURES_DIR
 
 
-@pytest.fixture(autouse=True)
-def _block_yfinance(monkeypatch):
-    """テストから yfinance（ネットワーク）に触れたら失敗させる（大原則5）"""
+# 2026-11-17 23:09 JST に bitbank-lab-mcp から取得した実データ（使う部分だけに切り詰めたもの）
+BITBANK_FIXTURE = "bitbank/snapshot_20261117_2309.json"
 
-    def _blocked(*args, **kwargs):
+
+@pytest.fixture(autouse=True)
+def _block_network(monkeypatch):
+    """テストから yfinance・bitbank-lab-mcp（ネットワーク）に触れたら失敗させる（大原則5）"""
+
+    def _blocked_yf(*args, **kwargs):
         raise RuntimeError("テストから yfinance にアクセスしようとしました。fixtures を使ってください")
 
-    monkeypatch.setattr("good_morning.collector.market_data.yf.Ticker", _blocked)
+    def _blocked_mcp(*args, **kwargs):
+        raise RuntimeError("テストから bitbank-lab-mcp に接続しようとしました。fixtures を使ってください")
+
+    monkeypatch.setattr("good_morning.collector.market_data.yf.Ticker", _blocked_yf)
+    monkeypatch.setattr("good_morning.collector.bitbank_mcp.fetch_snapshot", _blocked_mcp)
+
+
+def load_fixture_json(name: str) -> dict:
+    return json.loads((FIXTURES_DIR / name).read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def fake_bitbank(monkeypatch):
+    """bitbank-lab-mcp の取得を fixtures から返す偽物に差し替える
+
+    使い方: calls = fake_bitbank(BITBANK_FIXTURE) / fake_bitbank(data_dict)
+    返り値のリストに、fetch_snapshot が呼ばれた回数分の呼び出し内容が入る。
+    """
+    from good_morning.collector.bitbank_mcp import BitbankSnapshot
+
+    def _install(source: str | dict) -> list:
+        data = load_fixture_json(source) if isinstance(source, str) else source
+        calls: list = []
+
+        def _fake_fetch(tool_calls=None):
+            calls.append(tool_calls)
+            return BitbankSnapshot(
+                results=dict(data.get("results", {})), errors=dict(data.get("errors", {}))
+            )
+
+        monkeypatch.setattr("good_morning.collector.bitbank_mcp.fetch_snapshot", _fake_fetch)
+        return calls
+
+    return _install
 
 
 def history_frame(series: dict) -> pd.DataFrame:

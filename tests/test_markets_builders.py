@@ -50,7 +50,8 @@ def test_markets_table_from_pre_open_snapshot(fake_yfinance, ctx):
     assert rows["S&P500先物 ※"] == ["7,422.75", "-16.25", "-0.22%"]
     assert rows["NYダウ先物 ※"] == ["51,213", "-457", "-0.88%"]  # decimals: 0
     # 並びは markets.yaml の順
-    assert list(rows)[1:4] == ["米10年債利回り", "ドル円 ※", "NYダウ"]
+    # 先頭の BTC/JPY は bitbank（このテストでは接続しないので取得失敗）
+    assert list(rows)[1:5] == ["BTC/JPY", "米10年債利回り", "ドル円 ※", "NYダウ"]
 
     assert content.basis[0] == NY_CLOSE_LINE
     assert content.basis[1] == "為替・先物など（表の※）: 取得時点の値（2026-11-17 22:50 JST）"

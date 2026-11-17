@@ -31,7 +31,7 @@
 |---|---|---|
 | 0 | リポジトリの準備（aion の複製、AI専用部分の整理、CLAUDE.md） | 済 |
 | 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | 済 |
-| 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | |
+| 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | 済 |
 | 3 | 今後の予定（決算・FRED・events.yaml） | |
 | 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | |
 | 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | |
@@ -88,13 +88,24 @@
 - 使うツール: BTC のテクニカルは `analyze_indicators` を日足・週足・月足で各1回、ウォッチリストの価格は `get_tickers_jpy`、取扱銘柄の確認は bitbank の取扱銘柄一覧。
 - 実装前に `structuredContent` の中身を確認し、必要な数値（一目の各線、SMA 25/75/200、BBのσ位置、RSI(14) と直近7本、MACD）が取れることを確かめる。取れない項目は bitbank 公開API のローソク足から自前で計算する予備処理を検討する。`scripts/mcp_tools.py bitbank <tool>` でスキーマを見られる。
 
+#### フェーズ2で確認・実装したこと（2026-11-17）
+
+- `structuredContent` を読むのは LLM ではなく Python（MCP Python SDK）。MCP SDK 2.x では属性名が snake_case（`result.structured_content`、`tool.input_schema`）。pyproject は `mcp>=2.0,<3` に固定。
+- 必要な数値は `analyze_indicators` の `data.indicators` と `data.normalized`（足）ですべて取れた。予備の自前計算は不要だった。BB の σ 位置は `(終値 - BB_middle) / (BB1_upper - BB_middle)` で計算（ツールの文章の値と一致）。
+- **一目の `ICHIMOKU_spanA/spanB` と `ichi_series` はずらす前の値**（今の足で計算した先行スパン）。今の足の雲は `ichi_series.spanA/spanB[-1 - shift]`、遅行スパンは今の終値と `shift` 本前の終値の比較。bitbank-lab-mcp のずらしは 26 本（`chart.meta.shift` と遅行スパンの系列で確認）。日足・週足・月足とも、ツールの文章の「雲の上／下」と一致することを確認済み。
+- 月足は `SMA_200` が `null`（`meta.warnings` に「データ不足」）。表では「200本は算出不可」と出し、並びは残りの線（25/75）で判定する（`moving_average.allow_partial`）。
+- 足の区切りは日本時間 9:00（`isoTimeLocal`）。日足は毎日、週足は月曜、月足は1日。最新の足は形成中（`meta.provisional: true`）。
+- `get_tickers_jpy` は全 JPY ペア（2026-11 時点で44ペア）を返すので、これを取扱銘柄一覧として照合に使う。`change24hPct` は小数2桁に丸められているので、変化率は `last / open` から自前で計算する。価格の表示は取引所の桁数の文字列（`last`）をそのまま3桁区切りにする。
+- MCP サーバーへの接続は1回の実行で1度だけ（3つのセクションで共有）。接続に失敗したら覚えておき、再接続しない。ツールごとの失敗は、その部分だけ「取得失敗」。
+- **RSI の点数の初期値は「流れに沿う」見方**（強め・買われすぎ +1、弱め・売られすぎ -1）。他の4要素と向きをそろえた。「売られすぎ＝反発の余地」と見るなら `scoring.yaml` の `rsi.scores` で変える（ユーザーに確認待ち）。
+
 ## 設定ファイル（`config/`）
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
 | `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
 | `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻 | 済 |
-| `scoring.yaml` | 判定ルールの区切りの値 | フェーズ2 |
+| `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
 | `events.yaml` | FOMC・日銀の日程と重要度 | フェーズ3 |
 | `feeds.yaml` / `keywords.yaml` | RSS とキーワード。**現在は aion の AI 向けの中身を仮置き**。フェーズ4で市場向けに入れ替える | 仮 |
 | `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）とプロンプト | 仮 |
@@ -135,6 +146,8 @@ src/good_morning/
   reporter/markdown.py  ヘッダー・各セクション・フッターの描画と保存
   collector/market_data.py  yfinance で日足を取得（yfinance に触れるのはここだけ）
   markets/           markets.yaml の読み込み、前日比の計算、3つの表とセクションの builder
+  collector/bitbank_mcp.py  bitbank-lab-mcp への接続（MCP に触れるのはここだけ）
+  crypto/            scoring.yaml の読み込み、テクニカルの判定、BTCの詳細・暗号資産ウォッチリスト
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
   collector/rss.py   RSS 取得（aion から流用）
@@ -154,5 +167,6 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 - テストは aion の流儀に合わせる: 実データのスナップショットを `tests/fixtures/` に置き、`monkeypatch` で取得関数を差し替える。共通の部品は `tests/conftest.py`。
-- yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance に触れたら失敗させる。
+- yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance・bitbank-lab-mcp に触れたら失敗させる。
+- bitbank の固定データは `scripts/capture_bitbank_fixture.py` で `tests/fixtures/bitbank/` に保存する（使う部分だけに切り詰める。1本約1MB → 全体で約170KB）。テストでは `fake_bitbank` フィクスチャで差し替える。
 - `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。
