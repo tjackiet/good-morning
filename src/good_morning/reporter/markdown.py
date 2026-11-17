@@ -9,12 +9,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from good_morning.models import Article
 from good_morning.paths import OUTPUTS_DIR
-from good_morning.timeutil import JST, format_jst
+from good_morning.timeutil import JST, format_jst, weekday_ja
 
 REPORT_TITLE = "モーニングレター"
-WEEKDAYS_JA = "月火水木金土日"
 
 DISCLAIMER = (
     "本レポートは情報提供を目的として機械的に生成したもので、投資助言ではありません。"
@@ -51,7 +49,7 @@ class ReportMeta:
 def format_report_date(date: datetime) -> str:
     """2026年11月17日（火） の形式にする"""
     date = date.astimezone(JST)
-    return f"{date.strftime('%Y年%m月%d日')}（{WEEKDAYS_JA[date.weekday()]}）"
+    return f"{date.strftime('%Y年%m月%d日')}（{weekday_ja(date)}）"
 
 
 def render_header(meta: ReportMeta, sections: list[Section]) -> list[str]:
@@ -61,7 +59,8 @@ def render_header(meta: ReportMeta, sections: list[Section]) -> list[str]:
         f"- 生成時刻: {format_jst(meta.generated_at)}",
     ]
 
-    basis = [line for section in sections for line in section.basis]
+    # 複数のセクションが同じ基準（例: NY終値）を出すので、重複を除いて出た順に並べる
+    basis = list(dict.fromkeys(line for section in sections for line in section.basis))
     if basis:
         lines.append("- データ基準時刻:")
         lines.extend(f"  - {line}" for line in basis)
@@ -124,29 +123,3 @@ def save_report(content: str, date: datetime, output_dir: Path | None = None) ->
     filepath = output_dir / report_filename(date)
     filepath.write_text(content, encoding="utf-8")
     return filepath
-
-
-def format_article(article: Article) -> list[str]:
-    """1記事をMarkdown形式にフォーマット
-
-    aion から引き継いだもの。主要ニュースのセクションはフェーズ4でこれを作り直す
-    （「Why it matters」→「暗号資産への示唆」）。
-    """
-    lines = []
-
-    lines.append(f"### [{article.title}]({article.url})")
-    lines.append("")
-
-    pub_date = article.published.strftime("%Y-%m-%d") if article.published else "不明"
-    lines.append(f"**{article.source}** | {pub_date}")
-    lines.append("")
-
-    if article.ai_summary:
-        lines.append(article.ai_summary)
-        lines.append("")
-
-    if article.why_it_matters:
-        lines.append(f"> **Why it matters**: {article.why_it_matters}")
-        lines.append("")
-
-    return lines

@@ -1,9 +1,10 @@
 """時刻の扱い（表示はすべて JST）"""
 
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 JST = ZoneInfo("Asia/Tokyo")
+WEEKDAYS_JA = "月火水木金土日"
 
 
 def now_jst() -> datetime:
@@ -15,3 +16,12 @@ def format_jst(dt: datetime, fmt: str = "%Y-%m-%d %H:%M") -> str:
     if dt.tzinfo is None:
         raise ValueError("タイムゾーンのない日時は JST に変換できません")
     return dt.astimezone(JST).strftime(fmt) + " JST"
+
+
+def weekday_ja(d: date) -> str:
+    return WEEKDAYS_JA[d.weekday()]
+
+
+def format_month_day(d: date) -> str:
+    """11/16（月） の形式"""
+    return f"{d.month}/{d.day}（{weekday_ja(d)}）"

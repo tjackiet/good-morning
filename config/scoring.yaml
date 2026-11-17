@@ -1,0 +1,43 @@
+# BTC の詳細（日足・週足・月足）の判定ルール
+#
+# 5つの要素（雲との位置、三役、移動平均の並び、RSI、MACD）を
+# 強気 +1・弱気 -1・中立 0 で点数化し、合計で「強気／中立／弱気」を決める。
+# 判定は bitbank-lab-mcp の structuredContent の数値から計算する（文章のラベルは使わない）。
+
+judgement:
+  bullish_at: 2    # 合計がこれ以上なら「強気」
+  bearish_at: -2   # 合計がこれ以下なら「弱気」。それ以外は「中立」
+
+rsi:
+  period: 14
+  # 区分の境界（指示書の区分）:
+  #   oversold 以下 … 売られすぎ
+  #   weak 未満     … 弱め
+  #   strong 以下   … 中立（weak〜strong）
+  #   overbought 未満 … 強め
+  #   それ以上      … 買われすぎ
+  oversold: 30
+  weak: 45
+  strong: 55
+  overbought: 70
+  # 各区分の点数。他の4要素と同じく「流れに沿う」見方を初期値にしている
+  # （売られすぎ＝弱い流れ＝-1）。「売られすぎ＝反発の余地」と見るなら oversold を +1 などに変える。
+  scores:
+    oversold: -1
+    weak: -1
+    neutral: 0
+    strong: 1
+    overbought: 1
+  # 日足 RSI の推移として表示する本数
+  history_bars: 7
+
+ichimoku:
+  # 先行スパン（雲）と遅行スパンのずらし。bitbank-lab-mcp と同じ 26 本
+  shift: 26
+
+moving_average:
+  # 並びを見る移動平均（本数）。bitbank-lab-mcp が返すのは 5/20/25/50/75/200
+  periods: [25, 75, 200]
+  # 算出不可の線（例: 月足の200本線）があるとき、残りの線（2本以上）で並びを判定するか。
+  # false なら、算出不可を含む時間軸は中立（0点）にする。
+  allow_partial: true

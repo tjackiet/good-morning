@@ -39,7 +39,10 @@ async def show(server: str, tool_name: str | None) -> None:
                 print(f"Tool: {tool.name}")
                 print(f"Description: {tool.description}")
                 print("Input Schema:")
-                print(json.dumps(tool.inputSchema, ensure_ascii=False, indent=2))
+                print(json.dumps(tool.input_schema, ensure_ascii=False, indent=2))
+                if tool.output_schema:
+                    print("Output Schema:")
+                    print(json.dumps(tool.output_schema, ensure_ascii=False, indent=2))
 
 
 def main() -> None:

@@ -72,16 +72,19 @@ def fetch_all_feeds(config_path: Path | None = None) -> list[Article]:
     """全フィードから記事を取得"""
     config = load_feeds_config(config_path)
     all_articles = []
+    enabled = [f for f in config.feeds if f.enabled]
+    succeeded = 0
 
-    for feed_config in config.feeds:
-        if not feed_config.enabled:
-            continue
-
+    for feed_config in enabled:
         try:
             articles = fetch_feed(feed_config)
             all_articles.extend(articles)
+            succeeded += 1
             logger.info("✓ %s: %d件取得", feed_config.name, len(articles))
         except Exception as e:  # noqa: BLE001 - 1フィードの失敗で全体を止めない（大原則3）
             logger.warning("✗ %s: 取得失敗 - %s", feed_config.name, e)
 
+    # すべて失敗したときは「記事が0件」と区別できるよう例外にする（セクションは「取得失敗」になる）
+    if enabled and succeeded == 0:
+        raise RuntimeError(f"すべてのフィード（{len(enabled)}件）の取得に失敗しました")
     return all_articles

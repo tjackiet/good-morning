@@ -25,22 +25,12 @@ from zoneinfo import ZoneInfo
 
 from good_morning.models import Article
 from good_morning.selector.filters import matched_keywords_in_text
-from good_morning.selector.keywords import KEYWORD_GROUPS
+from good_morning.selector.keywords import DEFAULT_KEYWORD_WEIGHT, KEYWORD_GROUPS, KEYWORD_WEIGHTS
 
 JST = ZoneInfo("Asia/Tokyo")
 
-# config/keywords.yaml のカテゴリ名 → 重み。
-# 汎用語ほど軽く、固有名詞ほど重い。
-KEYWORD_CATEGORY_WEIGHTS = {
-    "基本用語": 1.0,  # AI / 機械学習 など。何にでも付くので軽い
-    "応用分野": 1.0,  # 画像生成 / ロボット など。AI以外の文脈でも使われる
-    "エージェント": 2.0,
-    "技術用語": 2.0,
-    "LLM・生成AI": 3.0,
-    "モデル名": 3.0,  # Llama / DeepSeek など固有名詞
-    "サービス・企業": 3.0,  # OpenAI / Anthropic など固有名詞
-}
-DEFAULT_KEYWORD_WEIGHT = 1.0
+# config/keywords.yaml のカテゴリ名 → 重み（YAML の weight。大原則4: 設定は YAML に寄せる）
+KEYWORD_CATEGORY_WEIGHTS = KEYWORD_WEIGHTS
 
 # タイトル中のマッチを概要中のマッチの何倍に数えるか
 TITLE_MULTIPLIER = 2.0
@@ -61,10 +51,10 @@ def keyword_weight(keyword: str) -> float:
     return DEFAULT_KEYWORD_WEIGHT
 
 
-def keyword_score(article: Article) -> float:
-    """マッチしたキーワードの重み和（タイトル中のマッチは重く数える）"""
-    title_hits = set(matched_keywords_in_text(article.title))
-    summary_hits = set(matched_keywords_in_text(article.summary or "")) - title_hits
+def keyword_score(article: Article, ignore: frozenset[str] = frozenset()) -> float:
+    """マッチしたキーワードの重み和（タイトル中のマッチは重く数える。ignore の語は数えない）"""
+    title_hits = set(matched_keywords_in_text(article.title)) - ignore
+    summary_hits = set(matched_keywords_in_text(article.summary or "")) - title_hits - ignore
 
     return sum(keyword_weight(kw) * TITLE_MULTIPLIER for kw in title_hits) + sum(
         keyword_weight(kw) for kw in summary_hits
@@ -91,9 +81,11 @@ def score_article(
     article: Article,
     exempt_sources: frozenset[str] = frozenset(),
     now: datetime | None = None,
+    ignore_by_source: dict[str, frozenset[str]] | None = None,
 ) -> float:
     """記事の総合スコアを算出する"""
-    score = keyword_score(article) + recency_score(article, now=now)
+    ignore = (ignore_by_source or {}).get(article.source, frozenset())
+    score = keyword_score(article, ignore) + recency_score(article, now=now)
     if article.source in exempt_sources:
         score += EXEMPT_SOURCE_BASE_POINTS
     return score
@@ -103,9 +95,12 @@ def score_articles(
     articles: list[Article],
     exempt_sources: frozenset[str] = frozenset(),
     now: datetime | None = None,
+    ignore_by_source: dict[str, frozenset[str]] | None = None,
 ) -> list[Article]:
     """記事リストに score を付与する（同じオブジェクトを書き換えて返す）"""
     now = now or datetime.now(JST)
     for article in articles:
-        article.score = score_article(article, exempt_sources=exempt_sources, now=now)
+        article.score = score_article(
+            article, exempt_sources=exempt_sources, now=now, ignore_by_source=ignore_by_source
+        )
     return articles
