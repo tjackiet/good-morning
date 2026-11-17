@@ -8,32 +8,24 @@ builder 関数で作り、builder が例外を投げても「取得失敗」と�
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 
+from good_morning.context import RunContext, SectionContent
+from good_morning.markets.builders import build_markets, build_sectors, build_stock_watchlist
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, STATUS_PENDING, Section
-from good_morning.watchlist import Watchlist
+
+__all__ = [
+    "SECTION_SPECS",
+    "RunContext",
+    "SectionContent",
+    "SectionSpec",
+    "build_section",
+    "build_sections",
+]
 
 logger = logging.getLogger(__name__)
 
 STATUS_LABELS = {STATUS_OK: "OK", STATUS_FAILED: "取得失敗", STATUS_PENDING: "未実装"}
-
-
-@dataclass
-class RunContext:
-    """1回の実行で各 builder が共有する情報"""
-
-    now: datetime
-    watchlist: Watchlist | None = None
-
-
-@dataclass
-class SectionContent:
-    """builder の戻り値"""
-
-    body: str
-    basis: list[str] = field(default_factory=list)
-    sources: list[str] = field(default_factory=list)
 
 
 SectionBuilder = Callable[[RunContext], SectionContent]
@@ -49,11 +41,11 @@ class SectionSpec:
 
 SECTION_SPECS: list[SectionSpec] = [
     SectionSpec("summary", "今朝のまとめ", phase=5),
-    SectionSpec("markets", "マーケット一覧", phase=1),
-    SectionSpec("sectors", "セクター別騰落率", phase=1),
+    SectionSpec("markets", "マーケット一覧", phase=1, builder=build_markets),
+    SectionSpec("sectors", "セクター別騰落率", phase=1, builder=build_sectors),
     SectionSpec("btc", "BTCの詳細", phase=2),
     SectionSpec("crypto_watchlist", "暗号資産ウォッチリスト", phase=2),
-    SectionSpec("stock_watchlist", "株式ウォッチリスト", phase=1),
+    SectionSpec("stock_watchlist", "株式ウォッチリスト", phase=1, builder=build_stock_watchlist),
     SectionSpec("calendar", "今後の予定", phase=3),
     SectionSpec("news", "主要ニュース", phase=4),
     SectionSpec("crypto_implications", "暗号資産への示唆", phase=5),

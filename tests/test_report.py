@@ -84,6 +84,7 @@ def test_render_report_layout():
         SectionSpec("a", "正常な欄", 1, ok),
         SectionSpec("b", "壊れた欄", 1, broken),
         SectionSpec("c", "未着手の欄", 4),
+        SectionSpec("d", "同じ基準の欄", 1, ok),
     ]
     sections = build_sections(_ctx(), specs)
     meta = ReportMeta(generated_at=NOW, notices=["見本の銘柄で作成"])
@@ -99,12 +100,15 @@ def test_render_report_layout():
     assert "## 未着手の欄\n\n> 未実装（フェーズ4で実装予定）\n" in report
     assert DISCLAIMER in report
     assert "データ出典: yfinance" in report
+    # 同じ基準の行は1回だけ出す
+    assert report.count("米国株: NY終値") == 1
     # セクションの順序が保たれる
     assert report.index("## 正常な欄") < report.index("## 壊れた欄") < report.index("## 未着手の欄")
 
 
 def test_header_omits_basis_when_no_section_provides_it():
-    report = render_report(build_sections(_ctx()), ReportMeta(generated_at=NOW))
+    specs = [SectionSpec("x", "未着手", phase=9)]
+    report = render_report(build_sections(_ctx(), specs), ReportMeta(generated_at=NOW))
 
     assert "データ基準時刻" not in report
     assert "データ出典" not in report

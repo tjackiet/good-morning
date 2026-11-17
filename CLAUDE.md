@@ -30,7 +30,7 @@
 | フェーズ | 内容 | 状態 |
 |---|---|---|
 | 0 | リポジトリの準備（aion の複製、AI専用部分の整理、CLAUDE.md） | 済 |
-| 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | |
+| 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | 済 |
 | 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | |
 | 3 | 今後の予定（決算・FRED・events.yaml） | |
 | 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | |
@@ -69,6 +69,16 @@
 | 決算日 | yfinance `Ticker.calendar` / `get_earnings_dates()` | 確定／推定を区別する |
 | ニュース | RSS（aion の仕組み） | |
 
+### yfinance の扱い（フェーズ1で実装・検証済み）
+
+- yfinance に触れるのは `collector/market_data.py` だけ。外へは pandas の型を出さず `DailySeries` を返す。差し替えるときはこのファイルだけを直す。
+- `config/markets.yaml` の `basis` で銘柄ごとに基準を決める。
+  - `close`（NY終値）: 確定した日足だけを使う。**`^TNX` と `^VIX` は NY の取引開始前から当日の形成中の足が出る**（2026-11-17 に実データで確認）ため、NY の 16:00 + 30分（`us_market_close`）より前の当日の足、それより先の日付の足は捨てる（`markets/quotes.py` の `complete_bars`）。
+  - `live`（取得時点の値）: 為替・先物・ドルインデックス。最新の足をそのまま使い、表で名前に ※ を付ける。
+- `^TNX` は % の値そのもの（例 5.121）で返る。前日比は ×100 で bp。前日比%は出さない（「—」）。
+- 祝日などで終値の日付が他の銘柄とずれた行には「（11/13 終値）」を添える。ヘッダーの基準日は、終値の銘柄で最も多い日付。
+- 1銘柄の失敗はその行だけ「取得失敗」。全銘柄が失敗したらセクションごと「取得失敗」。
+
 ### bitbank-lab-mcp の注意（検証で判明済み）
 
 - **文章のラベルを使わない。** 同じ出力で RSI 37.0 が「中立圏」と「弱め（反発余地）」の両方で出る。判定は `structuredContent` の数値から自前の基準で行う。
@@ -83,7 +93,7 @@
 | ファイル | 内容 | 状態 |
 |---|---|---|
 | `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
-| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ | フェーズ1 |
+| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻 | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値 | フェーズ2 |
 | `events.yaml` | FOMC・日銀の日程と重要度 | フェーズ3 |
 | `feeds.yaml` / `keywords.yaml` | RSS とキーワード。**現在は aion の AI 向けの中身を仮置き**。フェーズ4で市場向けに入れ替える | 仮 |
@@ -102,7 +112,16 @@
 ## 未決事項（初期値で進め、変えやすくしておく）
 
 - **出力先**: ローカルの Markdown が本体。Notion への書き出しは aion の機能を残してオプション（`run --publish`）。
-- **Discord 通知**（ユーザー要望）: Webhook で、判定と3行要約と、スマホで開けるリンク（Notion ページを想定）を送る。フェーズ5で実装。ユーザーが別プロジェクトの Webhook 構成を共有してくれる予定。Notion 連携は `mcp-remote` のブラウザ認証に依存するため、launchd での無人実行に耐えるか（公式APIのトークンに替えるか）をフェーズ5で検証する。
+- **Discord 通知**（ユーザー要望）: Webhook で、判定と3行要約と、スマホで開けるリンク（Notion ページを想定）を送る。フェーズ5で実装。Notion 連携は `mcp-remote` のブラウザ認証に依存するため、launchd での無人実行に耐えるか（公式APIのトークンに替えるか）をフェーズ5で検証する。
+  - ユーザーが別プロジェクトで使っている構成を元にした方針:
+    - 送るのは `{"content": ...}` が中心（1通・2000字未満）。リンクは `[11/18 のモーニングレター](URL)` の形。
+    - **`User-Agent` を必ず付ける**（例 `good-morning/0.1`）。付けないと Discord の手前の Cloudflare に 403（error 1010）で弾かれる。
+    - `allowed_mentions: {"parse": []}` を既定にして、題名などに紛れた `@everyone` で鳴らないようにする。無音は `flags: 4096`、リンクプレビューを消すのは `flags: 4`（併用は 4100）。`?wait=true` で送れたかを確かめられる。※ flags 等は使う前に Discord の公式ドキュメントで確認する。
+    - URL は環境変数 `DISCORD_WEBHOOK_URL` からだけ読む。未設定なら「送らない」とログに残すだけ。ログやエラー理由に URL を入れない。
+    - 送信は失敗しても例外を投げず、理由を返して記録する（HTTP は状態コード、それ以外は例外の型名と、URL を含まない原因の種類＝証明書・名前解決など）。すべての例外を捕まえる。タイムアウト10秒。レポートの保存が済んでから送る。
+    - 1日1回なので、`429` のときは `retry_after` 秒待って1回だけ再送してよい。二重投稿しないよう、その日の分を送ったことをファイルに記録する。
+    - launchd はシェルの環境変数を引き継がないので、plist の `EnvironmentVariables` に入れる（plist はリポジトリに入れない）。Mac がスリープ中は動かないので、フェーズ6で `pmset` による起動予約などを検討する。
+    - URL が漏れたら、Webhook を作り直して古いものを削除する。
 - **ウォッチリストの銘柄**: 見本は仮のもの。
 - **任意項目**（VIX、ドルインデックス、株価指数先物）: 初期値はオン。
 
@@ -112,7 +131,10 @@
 src/good_morning/
   main.py            CLI（typer）。run / collect-cmd / publish
   sections.py        セクションの並びと、失敗を閉じ込める build_section
+  context.py         builder が受け取る RunContext（ctx.data に計算済みの数値を置く）と戻り値
   reporter/markdown.py  ヘッダー・各セクション・フッターの描画と保存
+  collector/market_data.py  yfinance で日足を取得（yfinance に触れるのはここだけ）
+  markets/           markets.yaml の読み込み、前日比の計算、3つの表とセクションの builder
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
   collector/rss.py   RSS 取得（aion から流用）
@@ -132,4 +154,5 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 - テストは aion の流儀に合わせる: 実データのスナップショットを `tests/fixtures/` に置き、`monkeypatch` で取得関数を差し替える。共通の部品は `tests/conftest.py`。
+- yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance に触れたら失敗させる。
 - `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。

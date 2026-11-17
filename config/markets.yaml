@@ -1,0 +1,56 @@
+# マーケット一覧・セクター別騰落率の設定
+#
+# 各項目のキー:
+#   ticker   … yfinance の銘柄コード
+#   name     … 表に出す名前
+#   basis    … データの基準
+#                close … NY終値。日足の確定した終値を使い、形成中の当日の足は捨てる
+#                live  … 取得時点の値。ほぼ24時間取引される為替・先物など。最新の足の値をそのまま使い、
+#                        表では名前に ※ を付ける。前日比は前日の足の終値との比較
+#   format   … price（既定）: 値をそのまま表示
+#              yield: 値を % で表示し、前日比を bp（0.01%）で表示する（前日比% は出さない）
+#   decimals … 小数点以下の桁数（既定 2）
+#   group    … 任意項目のグループ名。optional_groups でオン・オフする
+#
+# BTC/JPY（マーケット一覧の先頭）は bitbank から取るため、ここには書かない（フェーズ2）。
+
+# NY終値の確定時刻。basis: close の銘柄は、この時刻（＋ settle_minutes）より前の当日の足を
+# 形成中とみなして捨てる。^TNX や ^VIX は取引開始前から当日の足が出るため。
+us_market_close:
+  timezone: America/New_York
+  time: "16:00"
+  settle_minutes: 30   # VIX は 16:15 に確定するため余裕を持たせる
+
+# 任意項目のオン・オフ（初期値はすべてオン）
+optional_groups:
+  vix: true
+  dollar_index: true
+  index_futures: true
+
+markets:
+  - {ticker: "^TNX", name: 米10年債利回り, basis: close, format: yield, decimals: 3}
+  - {ticker: "JPY=X", name: ドル円, basis: live}
+  - {ticker: "^DJI", name: NYダウ, basis: close}
+  - {ticker: "^GSPC", name: S&P500, basis: close}
+  - {ticker: "^IXIC", name: ナスダック総合, basis: close}
+  - {ticker: "CL=F", name: WTI原油先物, basis: live}
+  - {ticker: "GC=F", name: 金先物, basis: live, decimals: 1}
+  - {ticker: "^VIX", name: VIX, basis: close, group: vix}
+  - {ticker: "DX-Y.NYB", name: ドルインデックス, basis: live, group: dollar_index}
+  - {ticker: "ES=F", name: S&P500先物, basis: live, group: index_futures}
+  - {ticker: "NQ=F", name: ナスダック100先物, basis: live, group: index_futures}
+  - {ticker: "YM=F", name: NYダウ先物, basis: live, decimals: 0, group: index_futures}
+
+# SPDR セクターETF（騰落率順に並べて表示する）
+sectors:
+  - {ticker: XLK, name: 情報技術}
+  - {ticker: XLF, name: 金融}
+  - {ticker: XLE, name: エネルギー}
+  - {ticker: XLV, name: ヘルスケア}
+  - {ticker: XLY, name: 一般消費財}
+  - {ticker: XLP, name: 生活必需品}
+  - {ticker: XLI, name: 資本財}
+  - {ticker: XLB, name: 素材}
+  - {ticker: XLU, name: 公益}
+  - {ticker: XLRE, name: 不動産}
+  - {ticker: XLC, name: コミュニケーション}
