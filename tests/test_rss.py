@@ -3,65 +3,76 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from good_morning.collector.rss import fetch_feed, parse_published_date
+import pytest
+
+from good_morning.collector.rss import fetch_all_feeds, fetch_feed, parse_published_date
 from good_morning.models import FeedConfig
 
 
 def test_parse_published_date_treats_struct_time_as_utc():
     """feedparser の published_parsed はUTC正規化済み。JSTに変換されて+9時間になる。"""
-    entry = SimpleNamespace(published_parsed=(2026, 7, 27, 3, 0, 0, 0, 0, 0))
+    entry = SimpleNamespace(published_parsed=(2026, 11, 17, 3, 0, 0, 0, 0, 0))
 
     result = parse_published_date(entry)
 
-    expected_utc = datetime(2026, 7, 27, 3, 0, 0, tzinfo=UTC)
-    assert result == expected_utc.astimezone(result.tzinfo)
+    assert result == datetime(2026, 11, 17, 3, 0, 0, tzinfo=UTC).astimezone(result.tzinfo)
     assert result.hour == 12  # UTC 3:00 -> JST 12:00
 
 
 def test_parse_published_date_falls_back_to_updated_parsed():
-    entry = SimpleNamespace(published_parsed=None, updated_parsed=(2026, 7, 27, 3, 0, 0, 0, 0, 0))
+    entry = SimpleNamespace(published_parsed=None, updated_parsed=(2026, 11, 17, 3, 0, 0, 0, 0, 0))
 
-    result = parse_published_date(entry)
-
-    assert result is not None
-    assert result.hour == 12
+    assert parse_published_date(entry).hour == 12
 
 
 def test_parse_published_date_returns_none_when_no_dates():
-    entry = SimpleNamespace(published_parsed=None, updated_parsed=None)
+    assert parse_published_date(SimpleNamespace(published_parsed=None, updated_parsed=None)) is None
 
-    assert parse_published_date(entry) is None
+
+def _fake_get(text):
+    def fake_get(url, headers=None, follow_redirects=True, timeout=30):
+        return SimpleNamespace(text=text, raise_for_status=lambda: None)
+
+    return fake_get
 
 
 def test_fetch_feed_parses_real_fixture(fixtures_dir, monkeypatch):
-    """ITmediaの実フィードスナップショットを解析し、Article群を構築できる。"""
-    xml_text = (fixtures_dir / "itmedia_aiplus.xml").read_text(encoding="utf-8")
+    """CoinPost の実フィード（2026-11-17 取得）を解析し、Article群を構築できる。"""
+    xml_text = (fixtures_dir / "rss" / "coinpost.xml").read_text(encoding="utf-8")
+    monkeypatch.setattr("good_morning.collector.rss.httpx.get", _fake_get(xml_text))
 
-    def fake_get(url, headers=None, follow_redirects=True, timeout=30):
-        return SimpleNamespace(text=xml_text, raise_for_status=lambda: None)
-
-    monkeypatch.setattr("good_morning.collector.rss.httpx.get", fake_get)
-
-    feed_config = FeedConfig(name="ITmedia AI+", url="https://example.com/rss", category="business")
+    feed_config = FeedConfig(name="CoinPost", url="https://example.com/rss", category="crypto")
     articles = fetch_feed(feed_config)
 
-    assert len(articles) == 20
-    assert all(a.source == "ITmedia AI+" for a in articles)
-    assert all(a.category == "business" for a in articles)
+    assert len(articles) == 16
+    assert all(a.source == "CoinPost" and a.category == "crypto" for a in articles)
     assert all(a.summary is None or len(a.summary) <= 500 for a in articles)
     assert all(a.published is not None for a in articles)
 
 
-def test_fetch_feed_handles_broken_feed_gracefully(fixtures_dir, monkeypatch):
-    """Google Cloud Japan ブログのフィードURLは現在HTMLページを返しており、0件になる。"""
-    html_text = (fixtures_dir / "google_cloud_japan_blog.xml").read_text(encoding="utf-8")
+def test_fetch_feed_handles_html_page_gracefully(fixtures_dir, monkeypatch):
+    """RSS の URL が HTML ページを返すようになった場合は0件になる（例外にはならない）。"""
+    html_text = (fixtures_dir / "rss" / "html_page_instead_of_rss.html").read_text(encoding="utf-8")
+    monkeypatch.setattr("good_morning.collector.rss.httpx.get", _fake_get(html_text))
 
-    def fake_get(url, headers=None, follow_redirects=True, timeout=30):
-        return SimpleNamespace(text=html_text, raise_for_status=lambda: None)
+    feed_config = FeedConfig(name="壊れたフィード", url="https://example.com/broken", category="macro")
 
-    monkeypatch.setattr("good_morning.collector.rss.httpx.get", fake_get)
+    assert fetch_feed(feed_config) == []
 
-    feed_config = FeedConfig(name="Google Cloud Japan ブログ", url="https://example.com/broken", category="tech")
-    articles = fetch_feed(feed_config)
 
-    assert articles == []
+def test_fetch_all_feeds_raises_when_every_feed_fails(tmp_path, monkeypatch):
+    """全フィードが失敗したら「記事0件」と区別できるよう例外にする（セクションは取得失敗になる）"""
+    config = tmp_path / "feeds.yaml"
+    config.write_text(
+        "feeds:\n  - {name: A, url: 'https://example.com/a', category: crypto}\n"
+        "  - {name: B, url: 'https://example.com/b', category: macro}\n",
+        encoding="utf-8",
+    )
+
+    def broken(url, **kwargs):
+        raise ConnectionError("down")
+
+    monkeypatch.setattr("good_morning.collector.rss.httpx.get", broken)
+
+    with pytest.raises(RuntimeError, match="すべてのフィード"):
+        fetch_all_feeds(config)

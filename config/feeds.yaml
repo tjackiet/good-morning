@@ -1,50 +1,75 @@
-# RSS フィード設定
+# RSS フィード設定（市場ニュース）
 #
-# ※ 現在の中身は aion から引き継いだ AI 分野のフィード（仮置き）。
-#   フェーズ4で市場ニュース向け（暗号資産・マクロ・公的機関）に入れ替え、
-#   URL が生きているかを確認する。
+# 2026-11-17 に各 URL を実際に取得して確認した。
+#   除外: Cointelegraph（日本語版）… https://jp.cointelegraph.com/rss が 410 Gone（配信終了）
+#   除外: ロイター … 公開 RSS が見つからない（reutersagency.com / reuters.com の候補 URL はすべて 404 か接続不可）
+#   保留: 日経のマーケット系 … 公式の RSS はない（nikkei.com は 404）。第三者サービス（assets.wor.jp）経由なら
+#         取れるため enabled: false で置いてある。使うかはユーザーの判断待ち。
 #
 # keyword_filter: 省略時 true。キーワードフィルタを適用するか。
-#   配信元がすでに対象分野で絞り込んでいるフィードでは、キーワードの網羅性が
-#   そのまま取りこぼしになるため false にして全件通過させる（日付フィルタは適用される）。
+#   配信元がすでに対象分野で絞り込んでいるフィード（暗号資産の専門媒体、FRB の金融政策）は false にして
+#   全件通過させる（日付フィルタは適用される）。
+#
+# ignore_keywords: このフィードでは数えないキーワード。配信元の名前（SEC のプレスリリースの「SEC」、
+#   日銀の新着情報の「日銀」）は全記事に含まれ、フィルタが素通しになるため（2026-11-17 に実データで確認:
+#   SEC は 25件中25件、日銀は統計の公表まで「日銀」で通っていた）。
+#
+# categories: カテゴリごとの表示名と、要約する記事の配分（quota の合計が既定の要約本数になる）。
+
+categories:
+  crypto:
+    label: 暗号資産
+    quota: 2
+  macro:
+    label: マクロ・市場
+    quota: 2
+  official:
+    label: 公的機関
+    quota: 1
 
 feeds:
-  # ビジネス系
-  - name: "ITmedia AI+"
-    url: "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml"
-    category: "business"
-    enabled: true
-    # AI専門媒体だが実際には非AI記事も流れてくる（スナップショットではiPhoneのメモリ市況記事）。
-    # 通過率95%でフィルタはほぼ素通しかつ、落としている1件は正しい除外なので免除しない。
-    keyword_filter: true
-
-  # 開発・技術系
-  - name: "Zenn"
-    url: "https://zenn.dev/feed"
-    category: "tech"
-    enabled: true
-
-  - name: "はてなブックマーク（テクノロジー）"
-    url: "https://b.hatena.ne.jp/hotentry/it.rss"
-    category: "tech"
-    enabled: true
-
-  - name: "テクノエッジ"
-    url: "https://www.techno-edge.net/rss20/index.rdf"
-    category: "tech"
-    enabled: true
-
-  - name: "Google Cloud Japan ブログ"
-    url: "https://cloud.google.com/blog/ja/rss"
-    category: "tech"
-    enabled: true
-
-  # 研究論文系（arXiv AI分野）
-  - name: "arXiv CS.AI"
-    url: "https://rss.arxiv.org/rss/cs.AI"
-    category: "research"
-    enabled: true
-    # arXiv自身が cs.AI に分類した論文しか流れてこないため、キーワードフィルタは不要。
-    # 適用すると 223件中121件(54%) を落としていた（Agentic/Agents の単語境界落ち、
-    # Diffusion Models・VLM・MLLM・GRPO 等の語彙不足が原因）。
+  # 暗号資産
+  - name: CoinDesk
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/"
+    category: crypto
     keyword_filter: false
+
+  - name: CoinPost
+    url: "https://coinpost.jp/?feed=rss2"
+    category: crypto
+    keyword_filter: false
+
+  - name: The Block
+    url: "https://www.theblock.co/rss.xml"
+    category: crypto
+    keyword_filter: false
+
+  # マクロ・市場
+  - name: Bloomberg（Markets）
+    url: "https://feeds.bloomberg.com/markets/news.rss"
+    category: macro
+
+  - name: Bloomberg（Economics）
+    url: "https://feeds.bloomberg.com/economics/news.rss"
+    category: macro
+
+  - name: 日経（マーケット・wor.jp 経由）
+    url: "https://assets.wor.jp/rss/rdf/nikkei/markets.rdf"
+    category: macro
+    enabled: false   # 非公式の第三者サービス経由のため保留（上の説明を参照）
+
+  # 公的機関
+  - name: FRB（金融政策）
+    url: "https://www.federalreserve.gov/feeds/press_monetary.xml"
+    category: official
+    keyword_filter: false
+
+  - name: 日本銀行（新着情報）
+    url: "https://www.boj.or.jp/rss/whatsnew.xml"
+    category: official
+    ignore_keywords: [日銀]
+
+  - name: SEC（プレスリリース）
+    url: "https://www.sec.gov/news/pressreleases.rss"
+    category: official
+    ignore_keywords: [SEC]

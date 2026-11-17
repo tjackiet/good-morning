@@ -33,7 +33,7 @@
 | 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | 済 |
 | 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | 済 |
 | 3 | 今後の予定（決算・FRED・events.yaml） | 済（FRED は実データ未確認） |
-| 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | |
+| 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | 済（要約は実データ未確認） |
 | 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | |
 | 6 | launchd で毎日 JST 7:15 に定時実行 | |
 
@@ -88,6 +88,17 @@
 - **決算日**: yfinance の `info`（決算日に関わる項目だけ。価格には使わない）と `get_earnings_dates()` を使う。実データで確かめた `info` の意味: `isEarningsDateEstimate=False` かつ未来 → 確定、`True` → 推定、`False` かつ過去 → 前回の決算（次回は `get_earnings_dates()` の未発表の行から推定）。EPS 予想は `get_earnings_dates()` の日付が近い行から。`Ticker.calendar` は古い日付を返すことがあった（HOOD）ので使わない。related の関連企業は `shortName`（会社名）で表示する。
 - 決算日の取得は1銘柄2回の通信（info と get_earnings_dates）。見本のウォッチリスト（関連企業込み8銘柄）で約10秒。
 
+### 主要ニュース（フェーズ4で実装）
+
+- **フィード**（2026-11-17 に全 URL を実際に取得して確認）: CoinDesk・CoinPost・The Block（暗号資産。キーワードフィルタ免除）、Bloomberg Markets / Economics（マクロ）、FRB 金融政策（免除）・日銀 新着・SEC プレスリリース（公的機関）。**除外**: Cointelegraph 日本語版（410 Gone）、ロイター（公開 RSS なし）。**保留**: 日経マーケット（公式 RSS なし。第三者の assets.wor.jp 経由で `enabled: false`。ユーザーの判断待ち）。
+- **`ignore_keywords`**: 配信元の名前は全記事に含まれるため数えない（SEC の「SEC」で 25/25 件、日銀の「日銀」で統計の公表まで素通しになっていた）。
+- **英語の複数形**: 英語の語は s / es にもマッチする（`ETF` → `ETFs`）。aion の単語境界だけだと英語のフィードで取りこぼすため。
+- **配分**: `feeds.yaml` の `categories.*.quota`（暗号資産2・マクロ2・公的機関1）の合計5本が既定。足りないカテゴリの枠はスコア順で埋める。カテゴリの重み（`keywords.yaml` の `weight`）とあわせて YAML で調整できる。
+- **要約**: Claude Sonnet 5 は既定で thinking が有効なので、応答の先頭が thinking ブロックのことがある。`content[0].text` を決め打ちせず text ブロックだけを使う。thinking も `max_tokens` に含まれるため 4000 にした（aion の 1024 では切れうる）。プロンプトで「記事にない数値を作らない」と指示（大原則1）。
+- **API キーがないとき**: 要約できない旨を書き、配信元の概要（RSS の description から HTML タグを除いて140字）を載せる。**`ANTHROPIC_API_KEY` が未設定のため、要約は実データで未確認**（テストは偽のクライアント）。
+- モデル `claude-sonnet-5` は有効な ID（前の世代。指示書の「aion と同じ」に従った）。同じ価格の後継 `claude-sonnet-5-5` もあるので、変えるかはユーザーの判断。
+- 全フィードが失敗したら、記事0件と区別してセクションを「取得失敗」にする（`fetch_all_feeds` が例外を投げる）。
+
 ### bitbank-lab-mcp の注意（検証で判明済み）
 
 - **文章のラベルを使わない。** 同じ出力で RSI 37.0 が「中立圏」と「弱め（反発余地）」の両方で出る。判定は `structuredContent` の数値から自前の基準で行う。
@@ -116,8 +127,9 @@
 | `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻 | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
 | `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度、表示する期間 | 済 |
-| `feeds.yaml` / `keywords.yaml` | RSS とキーワード。**現在は aion の AI 向けの中身を仮置き**。フェーズ4で市場向けに入れ替える | 仮 |
-| `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）とプロンプト | 仮 |
+| `feeds.yaml` | 市場ニュースの RSS（暗号資産・マクロ・公的機関）、カテゴリごとの要約枠、フィードごとの `keyword_filter` / `ignore_keywords` | 済 |
+| `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`） | 済 |
+| `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト（「要約」「暗号資産への示唆」） | 済（今朝のまとめ用はフェーズ5） |
 
 - 暗号資産のペアは bitbank の取扱銘柄と照合し、存在しないペアは警告してスキップする（フェーズ2）。
 - 上限を超えたら先頭から順に採用する（実装済み）。
@@ -159,11 +171,12 @@ src/good_morning/
   crypto/            scoring.yaml の読み込み、テクニカルの判定、BTCの詳細・暗号資産ウォッチリスト
   collector/fred.py  FRED の発表予定日の取得
   schedule/          events.yaml の読み込み、予定の組み立て（JST 変換・期間・並べ替え）、今後の予定のセクション
+  news/builder.py    主要ニュースのセクション（収集→選定→要約→表示）
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
   collector/rss.py   RSS 取得（aion から流用）
   selector/          絞り込み・スコアリング・ランキング（aion から流用）
-  processor/summarizer.py  Claude による記事要約（aion から流用。フェーズ4で変更）
+  processor/summarizer.py  Claude による記事要約（「要約」と「暗号資産への示唆」）
   publisher/notion_mcp.py  Notion 書き出し（任意）
 ```
 
@@ -181,4 +194,4 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 - yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance・bitbank-lab-mcp に触れたら失敗させる。
 - bitbank の固定データは `scripts/capture_bitbank_fixture.py` で `tests/fixtures/bitbank/` に保存する（使う部分だけに切り詰める。1本約1MB → 全体で約170KB）。テストでは `fake_bitbank` フィクスチャで差し替える。
 - 決算日・FRED の固定データは `scripts/capture_schedule_fixture.py` で保存する（FRED はキーがあるときだけ）。テストでは `fake_yfinance`（決算日も返す）と、`test_schedule_builder.py` の `fake_fred` で差し替える。autouse フィクスチャは `httpx.get` も止める。
-- `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。
+- `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン（`tests/fixtures/rss/` の実フィード、2026-11-17 取得）。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。有効なフィードを足したら固定データも足す（テストで確認している）。

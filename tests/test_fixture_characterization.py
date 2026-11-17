@@ -1,12 +1,13 @@
-"""実フィードスナップショット(tests/fixtures/)に対する現状挙動の固定テスト
+"""実フィードスナップショット(tests/fixtures/rss/)に対する現状挙動の固定テスト
 
-ここでの数値は「現状」であり、正しさの保証ではない。PR4以降でスコアリングや
-語彙をさらに調整した際に、意図した差分だけが出ていることを確認するためのベースライン。
+2026-11-17 に各フィードから取得した実データ。ここでの数値は「現状」であり、正しさの保証では
+ない。キーワードやフィードの設定を調整した際に、意図した差分だけが出ていることを確認するための
+ベースライン。
 
-各フィクスチャの keyword_pass は日付フィルタをかけない全件に対する filter_by_keywords
-通過数（時刻に依存しないようにするため）。実装本体（good_morning.selector.filters）と
-実際の config/feeds.yaml をそのまま使うことで、このテスト自体が独自に判定ロジックや
-フィード設定を再実装して現行実装と乖離するのを防ぐ。
+keyword_pass は日付フィルタをかけない全件に対する filter_by_keywords の通過数（時刻に依存
+しないようにするため）。実装本体（good_morning.selector.filters）と実際の config/feeds.yaml・
+config/keywords.yaml をそのまま使うことで、このテスト自体が独自に判定ロジックを再実装して
+現行実装と乖離するのを防ぐ。
 """
 
 import feedparser
@@ -14,25 +15,28 @@ import pytest
 
 from good_morning.collector.rss import parse_published_date
 from good_morning.models import Article
-from good_morning.selector.core import keyword_filter_exempt_sources
+from good_morning.selector.core import keyword_filter_exempt_sources, keyword_ignore_by_source
 from good_morning.selector.filters import filter_by_keywords
 
 # (feeds.yaml上の情報源名, フィクスチャファイル名, 取得件数, 日付パース成功件数, 通過件数)
 BASELINE = [
-    ("ITmedia AI+", "itmedia_aiplus.xml", 20, 20, 19),
-    ("Zenn", "zenn.xml", 20, 20, 12),
-    ("はてなブックマーク（テクノロジー）", "hatena_bookmark_tech.xml", 30, 30, 13),
-    ("テクノエッジ", "techno_edge.xml", 50, 50, 31),
-    # 現在このURLはRSSではなくHTMLページを返しており、feedparserが0件になる。
-    # フィード設定側のURL切れとして別途扱う（PR2のスコープ外）。
-    ("Google Cloud Japan ブログ", "google_cloud_japan_blog.xml", 0, 0, 0),
-    # keyword_filter: false により全件通過。PR4a以前は102件（46%）しか通っていなかった。
-    ("arXiv CS.AI", "arxiv_cs_ai.xml", 223, 223, 223),
+    # 暗号資産の専門媒体はキーワードフィルタ免除（keyword_filter: false）なので全件通過
+    ("CoinDesk", "coindesk.xml", 25, 25, 25),
+    ("CoinPost", "coinpost.xml", 16, 16, 16),
+    ("The Block", "theblock.xml", 20, 20, 20),
+    # Bloomberg は一般の市場ニュースなので、金融政策・暗号資産などの語で絞り込む
+    ("Bloomberg（Markets）", "bloomberg_markets.xml", 20, 20, 4),
+    ("Bloomberg（Economics）", "bloomberg_economics.xml", 20, 20, 9),
+    ("FRB（金融政策）", "frb_monetary.xml", 15, 15, 15),
+    # ignore_keywords: [日銀] で、統計の公表などが「日銀」の語だけで通るのを防いでいる（無視しないと14件）
+    ("日本銀行（新着情報）", "boj_whatsnew.xml", 70, 70, 10),
+    # ignore_keywords: [SEC] で、全記事が「SEC」の語で素通しになるのを防いでいる（無視しないと25件）
+    ("SEC（プレスリリース）", "sec_press.xml", 25, 25, 5),
 ]
 
 
 def _parse_fixture(fixtures_dir, filename: str, source: str) -> tuple[list[Article], list]:
-    text = (fixtures_dir / filename).read_text(encoding="utf-8")
+    text = (fixtures_dir / "rss" / filename).read_text(encoding="utf-8")
     parsed = feedparser.parse(text)
 
     articles = []
@@ -43,7 +47,7 @@ def _parse_fixture(fixtures_dir, filename: str, source: str) -> tuple[list[Artic
                 title=entry.get("title", "No Title"),
                 url=entry.get("link", ""),
                 source=source,
-                category="tech",
+                category="crypto",
                 summary=summary or None,
             )
         )
@@ -55,18 +59,19 @@ def test_fixture_baseline(fixtures_dir, source, filename, fetched, dated, keywor
     articles, entries = _parse_fixture(fixtures_dir, filename, source)
 
     assert len(entries) == fetched
+    assert sum(1 for e in entries if parse_published_date(e) is not None) == dated
 
-    dated_count = sum(1 for e in entries if parse_published_date(e) is not None)
-    assert dated_count == dated
-
-    passed = filter_by_keywords(articles, exempt_sources=keyword_filter_exempt_sources())
+    passed = filter_by_keywords(
+        articles,
+        exempt_sources=keyword_filter_exempt_sources(),
+        ignore_by_source=keyword_ignore_by_source(),
+    )
     assert len(passed) == keyword_pass
 
 
-def test_shipped_config_exempts_only_arxiv():
-    """出荷時のfeeds.yamlでキーワードフィルタを免除しているフィードを固定する。
+def test_baseline_covers_every_enabled_feed():
+    """有効なフィードを足したら、このベースラインにも固定データを足す"""
+    from good_morning.collector.rss import load_feeds_config
 
-    免除は精度と引き換えに取りこぼしを消す操作なので、対象が増えたときに
-    意図した変更かどうかレビューで気づけるようにしておく。
-    """
-    assert keyword_filter_exempt_sources() == frozenset({"arXiv CS.AI"})
+    enabled = {f.name for f in load_feeds_config().feeds if f.enabled}
+    assert enabled == {source for source, *_ in BASELINE}
