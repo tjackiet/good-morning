@@ -1,0 +1,135 @@
+# CLAUDE.md
+
+暗号資産投資向けのモーニングレターを自動生成する CLI。毎朝 JST 7:00 以降に `good-morning run` を
+1回実行すると、マーケット数値・今後30日の予定・主要ニュースを集約した Markdown が
+`outputs/YYYY-MM-DD.md` に出力される。メイン銘柄は BTC。
+
+- 元の指示書（全文）: [docs/ClaudeCode指示書_モーニングレター.md](docs/ClaudeCode指示書_モーニングレター.md)
+- ベース: 自作ツール aion（https://github.com/tjackiet/aion）。git 履歴は引き継がず、ファイルを出発点にした
+
+## 大原則（必ず守る）
+
+1. **数値は API から機械的に取得し、LLM に数値を作らせない。** Claude API の役割は要約・判定理由・まとめの文章だけ。LLM に渡すのは計算済みの数値に限る。
+2. **株・指数・ETF の騰落率は、日足 `history(interval="1d")` の終値から計算する。** `info` の `currentPrice` 系は使わない（JST 7:00 は米国の時間外取引中で、時間外の値が混ざるため）。
+3. **一部の取得に失敗しても、レポート全体は止めない。** 該当欄は「取得失敗」と表示し、ログに理由を残す（`good_morning/sections.py` の `build_section` が担う）。
+4. **設定は YAML に寄せる。** 銘柄・フィード・キーワード・イベント・判定の区切りの値は、コードを触らずに変えられるようにする。
+5. **テストはネットワークに依存させない。** 実データから作った固定データ（`tests/fixtures/`）でテストする。
+6. **時刻はすべて JST で表示する。** データごとの基準時刻（NY終値／取得時点）をヘッダーに明記する（`Section.basis` に入れるとヘッダーに載る）。
+
+## 公開リポジトリなので守ること
+
+- `config/watchlist.yaml`、`outputs/`、`logs/`、`.env` は `.gitignore` 済み。コミットするのは `config/watchlist.example.yaml` と `.env.example` だけ。
+- `watchlist.yaml` がないときは example を読み込んで警告を出す（`good_morning/watchlist.py`）。
+- ページIDや Webhook URL などをコードに直書きしない（環境変数で渡す）。
+
+## 進め方
+
+フェーズごとに `claude/phase-N-...` ブランチで作業し、PR を作る。各フェーズの最後に
+**テストを通す → 実データで1回動かす → 出力のサンプルを見せる** を行ってから止まり、ユーザーの確認を待つ。
+
+| フェーズ | 内容 | 状態 |
+|---|---|---|
+| 0 | リポジトリの準備（aion の複製、AI専用部分の整理、CLAUDE.md） | 済 |
+| 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | |
+| 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | |
+| 3 | 今後の予定（決算・FRED・events.yaml） | |
+| 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | |
+| 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | |
+| 6 | launchd で毎日 JST 7:15 に定時実行 | |
+
+## レポートの骨子
+
+`good_morning/sections.py` の `SECTION_SPECS` がこの順に並んでいる。フェーズごとに `builder` を埋める（未設定は「未実装」と表示）。
+
+0. ヘッダー: 日付、データ基準時刻（NY終値／BTCは取得時点／先物は取得時点の値／週足・月足は形成中）
+1. 今朝のまとめ: 「リスクオン／リスクオフ／様子見」の3段階判定と3行の要約（Claude。根拠の数値を必ず挙げる）
+2. マーケット一覧（終値・前日比・前日比%）: BTC/JPY（bitbank、24時間の変化率）、米10年債 `^TNX`（%表示、前日比は bp）、ドル円 `JPY=X`、`^DJI` `^GSPC` `^IXIC`、`CL=F` `GC=F`。任意（初期値オン）: `^VIX` `DX-Y.NYB` `ES=F` `NQ=F` `YM=F`
+3. セクター別騰落率: SPDR 11セクター（XLK XLF XLE XLV XLY XLP XLI XLB XLU XLRE XLC）を騰落率順に（Markdown の表、グラフ不要）
+4. BTCの詳細: 日足・週足・月足 × 一目（雲との位置・三役）、移動平均の並び（25/75/200本）、BBのσ位置、RSI(14)、MACD、判定。日足RSIの直近7日の推移と Claude の2〜3行のまとめ
+5. 暗号資産ウォッチリスト（5銘柄）: 価格、24時間の変化率、対BTCの強弱（BTCの変化率との差）
+6. 株式ウォッチリスト（米国株10銘柄）: 終値、前日比、騰落率順
+7. 今後の予定: 7日以内は日時（JST）・内容・重要度（高中低）・予想値（取れれば）。8〜30日は1行ずつ。決算はウォッチリストと `related` の企業
+8. 主要ニュース（3〜5本）: 見出し、2〜3行の要約、暗号資産への示唆、出典リンク
+9. 暗号資産への示唆: 強気材料、弱気材料、まとめ1〜2行
+- フッター: 投資助言ではない旨、データの出典（`Section.sources` を集めて表示）
+
+### BTC の判定ルール（区切りの値はすべて `config/scoring.yaml` で変更可能にする）
+
+- 5要素（雲との位置、三役、移動平均の並び、RSI、MACD）を強気+1・弱気−1・中立0で点数化。合計 +2以上「強気」、−2以下「弱気」、それ以外「中立」
+- RSI: 30以下 売られすぎ／30〜45 弱め／45〜55 中立／55〜70 強め／70以上 買われすぎ
+
+## データ取得元
+
+| 対象 | 取得元 | 注意 |
+|---|---|---|
+| 株・指数・為替・金利・商品・セクターETF | yfinance | 非公式ライブラリ。取得処理は1か所にまとめ、差し替えやすくする |
+| 暗号資産 | bitbank-lab-mcp（MCP Python SDK、stdio。`npx -y bitbank-lab-mcp@0.8.0`） | 公開データのみ。APIキー不要。private 系ツールは使わない |
+| 経済指標の発表予定日 | FRED API `fred/releases/dates`（`include_release_dates_with_no_data=true`） | `FRED_API_KEY` |
+| FOMC・日銀会合 | `config/events.yaml` に公式日程を年1回手で転記 | FOMC 議事要旨は会合の約3週間後。日付も書く |
+| 決算日 | yfinance `Ticker.calendar` / `get_earnings_dates()` | 確定／推定を区別する |
+| ニュース | RSS（aion の仕組み） | |
+
+### bitbank-lab-mcp の注意（検証で判明済み）
+
+- **文章のラベルを使わない。** 同じ出力で RSI 37.0 が「中立圏」と「弱め（反発余地）」の両方で出る。判定は `structuredContent` の数値から自前の基準で行う。
+- **週足・月足でも「200日」「5日前」と表示される**（実際は「本」）。数値だけを使い、単位はこちらで付ける。
+- **`analyze_sma_snapshot` は月足で使えない**（200本以上必要で n/a）。月足の移動平均は `analyze_indicators(type=1month)` の値を使い、月足の200本線は「算出不可」と表示する。
+- **最新の足は形成中。** 週足・月足が途中経過であることをレポートに一言入れる。
+- 使うツール: BTC のテクニカルは `analyze_indicators` を日足・週足・月足で各1回、ウォッチリストの価格は `get_tickers_jpy`、取扱銘柄の確認は bitbank の取扱銘柄一覧。
+- 実装前に `structuredContent` の中身を確認し、必要な数値（一目の各線、SMA 25/75/200、BBのσ位置、RSI(14) と直近7本、MACD）が取れることを確かめる。取れない項目は bitbank 公開API のローソク足から自前で計算する予備処理を検討する。`scripts/mcp_tools.py bitbank <tool>` でスキーマを見られる。
+
+## 設定ファイル（`config/`）
+
+| ファイル | 内容 | 状態 |
+|---|---|---|
+| `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
+| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ | フェーズ1 |
+| `scoring.yaml` | 判定ルールの区切りの値 | フェーズ2 |
+| `events.yaml` | FOMC・日銀の日程と重要度 | フェーズ3 |
+| `feeds.yaml` / `keywords.yaml` | RSS とキーワード。**現在は aion の AI 向けの中身を仮置き**。フェーズ4で市場向けに入れ替える | 仮 |
+| `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）とプロンプト | 仮 |
+
+- 暗号資産のペアは bitbank の取扱銘柄と照合し、存在しないペアは警告してスキップする（フェーズ2）。
+- 上限を超えたら先頭から順に採用する（実装済み）。
+
+## 環境変数（`.env`、見本は `.env.example`）
+
+- `ANTHROPIC_API_KEY`: 要約・まとめ用
+- `FRED_API_KEY`: 経済指標の発表予定日
+- `NOTION_PAGE_ID`（任意）: Notion への書き出し先
+- `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（フェーズ5で実装予定）
+
+## 未決事項（初期値で進め、変えやすくしておく）
+
+- **出力先**: ローカルの Markdown が本体。Notion への書き出しは aion の機能を残してオプション（`run --publish`）。
+- **Discord 通知**（ユーザー要望）: Webhook で、判定と3行要約と、スマホで開けるリンク（Notion ページを想定）を送る。フェーズ5で実装。ユーザーが別プロジェクトの Webhook 構成を共有してくれる予定。Notion 連携は `mcp-remote` のブラウザ認証に依存するため、launchd での無人実行に耐えるか（公式APIのトークンに替えるか）をフェーズ5で検証する。
+- **ウォッチリストの銘柄**: 見本は仮のもの。
+- **任意項目**（VIX、ドルインデックス、株価指数先物）: 初期値はオン。
+
+## コード構成
+
+```
+src/good_morning/
+  main.py            CLI（typer）。run / collect-cmd / publish
+  sections.py        セクションの並びと、失敗を閉じ込める build_section
+  reporter/markdown.py  ヘッダー・各セクション・フッターの描画と保存
+  watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
+  paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
+  collector/rss.py   RSS 取得（aion から流用）
+  selector/          絞り込み・スコアリング・ランキング（aion から流用）
+  processor/summarizer.py  Claude による記事要約（aion から流用。フェーズ4で変更）
+  publisher/notion_mcp.py  Notion 書き出し（任意）
+```
+
+## 開発コマンド
+
+```bash
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/pytest -q
+.venv/bin/ruff check src tests scripts
+.venv/bin/good-morning run                 # outputs/YYYY-MM-DD.md を生成
+.venv/bin/good-morning collect-cmd --explain   # RSS の通過/除外の理由を確認
+```
+
+- テストは aion の流儀に合わせる: 実データのスナップショットを `tests/fixtures/` に置き、`monkeypatch` で取得関数を差し替える。共通の部品は `tests/conftest.py`。
+- `tests/test_fixture_characterization.py` は「現状の挙動」を固定するベースライン。語彙やフィードを変えたら、意図した差分だけが出ているかを確かめて数値を更新する。
