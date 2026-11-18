@@ -1,13 +1,12 @@
 """Discord 通知のテスト（Discord には接続しない）"""
 
+import json
 from datetime import date
 from types import SimpleNamespace
 
 import httpx
 import pytest
-from conftest import YF_PRE_OPEN_CAPTURED_AT
 
-from good_morning.context import RunContext
 from good_morning.notify import discord
 from good_morning.notify.discord import (
     DiscordConfig,
@@ -18,8 +17,6 @@ from good_morning.notify.discord import (
 )
 from good_morning.notify.message import build_notification
 from good_morning.publisher.notion_mcp import extract_page_url
-from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, Section
-from good_morning.synthesis.claude import Synthesis
 
 WEBHOOK = "https://discord.com/api/webhooks/123/secret-token"
 
@@ -29,9 +26,12 @@ class FakePost:
         self.responses = list(responses)
         self.calls = []
 
-    def __call__(self, url, params=None, json=None, headers=None, timeout=None, verify=None):
+    def __call__(
+        self, url, params=None, json=None, headers=None, timeout=None, verify=None, data=None, files=None
+    ):
         self.calls.append(
-            {"url": url, "params": params, "json": json, "headers": headers, "timeout": timeout, "verify": verify}
+            {"url": url, "params": params, "json": json, "headers": headers, "timeout": timeout,
+             "verify": verify, "data": data, "files": files}
         )
         result = self.responses.pop(0)
         if isinstance(result, Exception):
@@ -155,36 +155,64 @@ def test_failed_send_is_not_recorded(tmp_path, fake_post):
     assert not discord.sent_marker(date(2026, 11, 18), tmp_path).exists()
 
 
-def test_notification_message():
-    synthesis = Synthesis(
-        stance="リスクオフ",
-        summary_lines=["一行目。", "二行目。", "三行目。"],
-        btc_comment="c",
-        bullish=["b"],
-        bearish=["d"],
-        conclusion="e",
-    )
-    ctx = RunContext(now=YF_PRE_OPEN_CAPTURED_AT, data={"synthesis": synthesis})
-    sections = [
-        Section(key="markets", title="マーケット一覧", status=STATUS_OK),
-        Section(key="news", title="主要ニュース", status=STATUS_FAILED),
-    ]
+VIEW = {
+    "date_label": "2026年11月17日（火）",
+    "summary": {"stance": "リスクオフ", "lines": ["一行目。", "二行目。", "三行目。"], "unverified": []},
+    "markets": {"hero": {"name": "BTC/JPY", "value": "10,344,652", "pct_label": "+1.28%", "failed": False}},
+    "btc": {"timeframes": [{"label": "日足", "verdict": "弱気", "total": -4}]},
+    "failed_sections": ["主要ニュース"],
+}
 
-    with_link = build_notification(ctx, sections, "https://www.notion.so/abc", "outputs/2026-11-17.md")
-    without_link = build_notification(ctx, sections, None, "outputs/2026-11-17.md")
 
-    assert with_link.splitlines()[0] == "**🌅 モーニングレター 11/17（火）**"
+def test_notification_message_without_image():
+    with_link = build_notification(VIEW, "https://app.notion.com/p/abc", "outputs/2026-11-17.html")
+    without_link = build_notification(VIEW, None, "outputs/2026-11-17.html")
+
+    assert with_link.splitlines()[0] == "**🌅 モーニングレター 2026年11月17日（火）**"
     assert "判定: 🔴 **リスクオフ**" in with_link
     assert "1. 一行目。" in with_link
+    assert "BTC/JPY 10,344,652円（24時間 +1.28%）・日足 弱気（-4）" in with_link
     assert "⚠ 取得失敗: 主要ニュース" in with_link
-    assert with_link.endswith("[レポートを開く](https://www.notion.so/abc)")
-    assert without_link.endswith("レポート: outputs/2026-11-17.md（このMacに保存）")
+    assert with_link.endswith("[レポートを開く](https://app.notion.com/p/abc)")
+    assert without_link.endswith("レポート: outputs/2026-11-17.html（このMacに保存）")
 
 
-def test_notification_without_synthesis():
-    message = build_notification(RunContext(now=YF_PRE_OPEN_CAPTURED_AT), [], None, "x.md")
+def test_notification_with_image_is_short():
+    """画像のカードに同じ内容が載るので、文章は判定・取得失敗・リンクだけにする"""
+    message = build_notification(VIEW, "https://claude.ai/artifact/x", "x.html", with_image=True)
 
-    assert "（今朝のまとめは作成できませんでした）" in message
+    assert "判定: 🔴 **リスクオフ**" in message
+    assert "1. 一行目。" not in message and "BTC/JPY" not in message
+    assert "⚠ 取得失敗: 主要ニュース" in message
+    assert message.endswith("[レポートを開く](https://claude.ai/artifact/x)")
+
+
+def test_notification_without_summary():
+    assert "（今朝のまとめは作成できませんでした）" in build_notification({}, None, "x.html")
+
+
+def test_image_is_sent_as_multipart(fake_post, tmp_path):
+    fake = fake_post(_resp(200))
+    image = tmp_path / "2026-11-18-card.png"
+    image.write_bytes(b"\x89PNG fake")
+
+    result = send_discord("hello", DiscordConfig(), webhook_url=WEBHOOK, image=image)
+
+    assert result.sent
+    call = fake.calls[0]
+    assert call["json"] is None
+    assert json.loads(call["data"]["payload_json"])["allowed_mentions"] == {"parse": []}
+    name, content, mime = call["files"]["files[0]"]
+    assert (name, content, mime) == ("2026-11-18-card.png", b"\x89PNG fake", "image/png")
+
+
+def test_unreadable_image_falls_back_to_text(fake_post, tmp_path):
+    fake = fake_post(_resp(200))
+
+    result = send_discord("hello", DiscordConfig(), webhook_url=WEBHOOK, image=tmp_path / "missing.png")
+
+    assert result.sent
+    assert fake.calls[0]["json"]["content"] == "hello"
 
 
 @pytest.mark.parametrize(
@@ -208,3 +236,8 @@ def test_notification_without_synthesis():
 )
 def test_extract_page_url(text, url):
     assert extract_page_url(text) == url
+
+
+def test_attach_card_setting():
+    assert load_notify_config().discord.attach_card is True  # 出荷時は添付する
+    assert DiscordConfig(attach_card=False).attach_card is False

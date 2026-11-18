@@ -21,6 +21,8 @@ def _quote_line(q, label: str | None = None) -> str:
     if not isinstance(q, Quote):
         return f"- {name}: 取得失敗"
     basis = "取得時点" if q.basis == "live" else f"{q.last_date.month}/{q.last_date.day} 終値"
+    if q.missing_close is not None:
+        basis += f"。{q.missing_close.month}/{q.missing_close.day} の終値は取得元に未反映"
     pct = format_change_pct(q)
     pct_text = "" if pct == "—" else f"、前日比% {pct}"
     return f"- {name}（{basis}）: {format_value(q)}、前日比 {format_change(q)}{pct_text}"

@@ -73,6 +73,25 @@ def run(
     filepath = save_report(report, now, output_dir)
     logger.info("保存: %s", filepath)
 
+    # ビジュアルレポート（JSON から HTML を描く）と画像のカード。失敗しても Markdown は保存済みなので止めない
+    day = now.strftime("%Y-%m-%d")
+    view, card = None, None
+    try:
+        from good_morning.visual.card import card_path, render_card_png
+        from good_morning.visual.render import render_html, save_html, save_view
+        from good_morning.visual.viewmodel import build_view
+
+        view = build_view(ctx, sections, meta)
+        save_view(view, day, output_dir)
+        html_file = save_html(render_html(view), day, output_dir)
+        save_html(render_html(view, standalone=False), day, output_dir, artifact=True)
+        logger.info("ビジュアルレポート: %s（アーティファクト用も保存）", html_file)
+        card = render_card_png(view, card_path(day, output_dir))
+        if card:
+            logger.info("画像のカード: %s", card)
+    except Exception:
+        logger.exception("ビジュアルレポートの作成に失敗しました")
+
     link = None
     if publish:
         # Notion 連携は任意機能。失敗してもローカル保存は済んでいるので止めない
@@ -86,19 +105,105 @@ def run(
         except Exception:
             logger.exception("Notion への書き出しに失敗しました")
 
-    if notify or force_notify or notify_preview:
+    if (notify or force_notify or notify_preview) and view is not None:
         # 通知も任意機能。失敗しても例外にせず、理由をログに残す（レポートの保存は済んでいる）
-        from good_morning.notify.discord import notify_once
-        from good_morning.notify.message import build_notification
+        # リンクは Notion に書き出せたらそのページ、なければ REPORT_URL（アーティファクト）、なければ保存先
+        _send_notification(
+            view, card, link or _report_url(), str(filepath), now.date(),
+            force=force_notify, preview=notify_preview,
+        )
 
-        message = build_notification(ctx, sections, link, str(filepath))
-        if notify_preview:
-            typer.echo("--- 通知の文面（送信しません）---")
-            typer.echo(message)
-        else:
-            result = notify_once(message, now.date(), force=force_notify)
-            log = logger.info if result.sent else logger.warning
-            log("Discord: %s", result.reason)
+
+REPORT_URL_ENV = "REPORT_URL"
+
+
+def _report_url() -> str | None:
+    """詳しいレポートを置いた場所（claude.ai のアーティファクトなど）。.env の REPORT_URL"""
+    import os
+
+    url = os.environ.get(REPORT_URL_ENV, "").strip()
+    return url or None
+
+
+def _send_notification(view, card, link, report_path, day, *, force=False, preview=False) -> None:
+    from good_morning.notify.discord import load_notify_config, notify_once
+    from good_morning.notify.message import build_notification
+
+    if not load_notify_config().discord.attach_card:
+        card = None  # notify.yaml で画像の添付をやめている
+
+    message = build_notification(view, link, report_path, with_image=card is not None)
+    if preview:
+        typer.echo("--- 通知の文面（送信しません）---")
+        typer.echo(message)
+        typer.echo(f"（画像: {card or 'なし'}）")
+        return
+    result = notify_once(message, day, force=force, image=card)
+    log = logger.info if result.sent else logger.warning
+    log("Discord: %s", result.reason)
+
+
+@app.command()
+def notify(
+    day: Annotated[
+        str | None, typer.Argument(help="日付（YYYY-MM-DD。省略時は最新）")
+    ] = None,
+    link: Annotated[
+        str | None,
+        typer.Option("--link", help="通知に載せるリンク（省略時は .env の REPORT_URL）"),
+    ] = None,
+    force: Annotated[bool, typer.Option("--force", help="その日送信済みでも送り直す")] = False,
+    preview: Annotated[bool, typer.Option("--preview", help="文面を表示するだけで送らない")] = False,
+):
+    """保存済みのレポートの通知を Discord に送る（画像のカードがあれば添付する）
+
+    毎朝のタスクで、アーティファクトにレポートを公開したあとに呼ぶ想定。
+    """
+    from datetime import date as date_type
+
+    _init()
+    from good_morning.visual.card import card_path
+    from good_morning.visual.render import load_view
+
+    if day is None:
+        views = sorted(OUTPUTS_DIR.glob("????-??-??.json"), reverse=True)
+        if not views:
+            typer.echo("保存済みのデータがありません。先に run コマンドを実行してください。")
+            raise typer.Exit(1)
+        day = views[0].stem
+    card = card_path(day)
+    _send_notification(
+        load_view(day),
+        card if card.exists() else None,
+        link or _report_url(),
+        str(OUTPUTS_DIR / f"{day}.html"),
+        date_type.fromisoformat(day),
+        force=force,
+        preview=preview,
+    )
+
+
+@app.command()
+def render(
+    day: Annotated[
+        str | None, typer.Argument(help="日付（YYYY-MM-DD。省略時は最新）")
+    ] = None,
+):
+    """保存済みのデータ（outputs/YYYY-MM-DD.json）からビジュアルレポートの HTML だけを作り直す"""
+    _init()
+    from good_morning.visual.render import load_view, render_html, save_html
+
+    if day is None:
+        views = sorted(OUTPUTS_DIR.glob("????-??-??.json"), reverse=True)
+        if not views:
+            typer.echo("保存済みのデータがありません。先に run コマンドを実行してください。")
+            raise typer.Exit(1)
+        day = views[0].stem
+    view = load_view(day)
+    path = save_html(render_html(view), day)
+    artifact = save_html(render_html(view, standalone=False), day, artifact=True)
+    typer.echo(f"ビジュアルレポート: {path}")
+    typer.echo(f"アーティファクト用: {artifact}")
 
 
 @app.command()

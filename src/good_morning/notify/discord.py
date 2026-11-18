@@ -8,8 +8,11 @@
   それ以外は例外の型名を原因までたどったもの）。タイムアウトは10秒。
 - 429 のときは retry_after 秒（上限あり）待って1回だけ再送する。
 - 同じ日に2回送らないよう、送れたら outputs/.notified/YYYY-MM-DD に記録する。
+- 画像（カード）は multipart/form-data で添付する（payload_json と files[0]）。添付した画像は、
+  flags の SUPPRESS_EMBEDS（リンクのプレビューを出さない）を付けても表示される。
 """
 
+import json
 import logging
 import os
 import time
@@ -36,6 +39,7 @@ FLAG_SUPPRESS_NOTIFICATIONS = 1 << 12
 
 
 class DiscordConfig(BaseModel):
+    attach_card: bool = True
     suppress_embeds: bool = True
     silent: bool = False
     retry_on_429: bool = True
@@ -79,28 +83,44 @@ def _retry_after(response) -> float:
         return 1.0
 
 
+def _request_body(payload: dict, image: Path | None) -> dict:
+    """httpx.post に渡す本文。画像があれば multipart（payload_json と files[0]）、なければ JSON"""
+    if image is None:
+        return {"json": payload}
+    return {
+        "data": {"payload_json": json.dumps(payload, ensure_ascii=False)},
+        "files": {"files[0]": (image.name, image.read_bytes(), "image/png")},
+    }
+
+
 def send_discord(
     content: str,
     config: DiscordConfig | None = None,
     webhook_url: str | None = None,
     sleep=time.sleep,
+    image: Path | None = None,
 ) -> NotifyResult:
-    """Discord に送る。失敗しても例外は投げず、理由を返す"""
+    """Discord に送る（image があれば添付する）。失敗しても例外は投げず、理由を返す"""
     config = config or load_notify_config().discord
     url = webhook_url or os.environ.get(WEBHOOK_ENV, "").strip()
     if not url:
         return NotifyResult(False, f"{WEBHOOK_ENV} が設定されていないため送りません")
 
     payload = build_payload(content, config)
+    try:
+        body = _request_body(payload, image)
+    except OSError as e:
+        logger.warning("Discord: 画像を読めないため文字だけで送ります（%s）", type(e).__name__)
+        body = _request_body(payload, None)
     for attempt in (1, 2):
         try:
             response = httpx.post(
                 url,
                 params={"wait": "true"},
-                json=payload,
                 headers={"User-Agent": USER_AGENT},
                 timeout=TIMEOUT_SECONDS,
                 verify=ssl_context(),
+                **body,
             )
         except Exception as e:  # noqa: BLE001 - 通知の失敗でレポートは止めない。理由だけ返す
             return NotifyResult(False, f"Discord に接続できませんでした（{cause_chain(e)}）")

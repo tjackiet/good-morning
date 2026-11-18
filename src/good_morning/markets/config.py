@@ -52,8 +52,16 @@ class MarketClose(BaseModel):
         return time(int(total.total_seconds() // 3600), int(total.total_seconds() % 3600 // 60))
 
 
+class MissingCloseRetry(BaseModel):
+    """取得元が終値を空のまま返したときの取り直し"""
+
+    attempts: int = 2
+    wait_seconds: float = 20
+
+
 class MarketsConfig(BaseModel):
     us_market_close: MarketClose = Field(default_factory=MarketClose)
+    missing_close_retry: MissingCloseRetry = Field(default_factory=MissingCloseRetry)
     optional_groups: dict[str, bool] = Field(default_factory=dict)
     markets: list[MarketItem]
     sectors: list[SectorItem]

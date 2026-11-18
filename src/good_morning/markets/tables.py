@@ -30,21 +30,65 @@ def format_change_pct(q: Quote) -> str:
     return f"{q.change_pct:+.2f}%"
 
 
-def _label(result: QuoteResult, base_date: date | None, show_ticker: bool) -> str:
+def uniform_stale(results: list[QuoteResult]) -> bool:
+    """表のすべての銘柄で、同じ日の終値が未反映か（そのときは行ごとの注記をやめ、表の下に1回だけ書く）"""
+    keys = {(r.last_date, r.missing_close) for r in results if isinstance(r, Quote)}
+    return len(keys) == 1 and next(iter(keys))[1] is not None
+
+
+def date_note(q: Quote, base_date: date | None, skip_stale: bool = False) -> str | None:
+    """終値の日付の注記（なければ None）
+
+    - 取得元で最新の終値が空だった: 「11/16 終値・11/17 は未反映」（skip_stale なら出さない）
+    - 祝日などで他の銘柄と終値の日付がずれている: 「11/13 終値」
+    """
+    if q.basis != "close":
+        return None
+    last = f"{q.last_date.month}/{q.last_date.day}"
+    if q.missing_close is not None:
+        if skip_stale:
+            return None
+        return f"{last} 終値・{q.missing_close.month}/{q.missing_close.day} は未反映"
+    if base_date is not None and q.last_date != base_date:
+        return f"{last} 終値"
+    return None
+
+
+def _label(
+    result: QuoteResult, base_date: date | None, show_ticker: bool, skip_stale: bool = False
+) -> str:
     label = f"{result.name}（{result.ticker}）" if show_ticker else result.name
     if isinstance(result, Quote):
         if result.basis == "live":
             label += f" {LIVE_MARK}"
-        elif base_date is not None and result.last_date != base_date:
-            # 祝日などで他の銘柄と終値の日付がずれているときは日付を添える
-            label += f"（{result.last_date.month}/{result.last_date.day} 終値）"
+        elif note := date_note(result, base_date, skip_stale):
+            label += f"（{note}）"
     return label
 
 
+def stale_note(results: list[QuoteResult]) -> str | None:
+    """終値が未反映の銘柄があるときに、表の下に添える注意書き"""
+    days = sorted({r.missing_close for r in results if isinstance(r, Quote) and r.missing_close})
+    if not days:
+        return None
+    if uniform_stale(results):
+        q = next(r for r in results if isinstance(r, Quote))
+        return (
+            f"⚠ この表はすべて {q.last_date.month}/{q.last_date.day} の終値と前日比です"
+            f"（{days[0].month}/{days[0].day} の終値が取得元にまだ反映されていません）。"
+        )
+    labels = "・".join(f"{d.month}/{d.day}" for d in days)
+    return (
+        f"⚠ 取得元にまだ {labels} の終値が反映されていない銘柄は、前の営業日の終値と前日比を表示しています"
+        "（注記のある行）。"
+    )
+
+
 def render_market_table(results: list[QuoteResult], base_date: date | None) -> str:
+    skip = uniform_stale(results)
     lines = ["| 項目 | 終値 | 前日比 | 前日比% |", "|---|---:|---:|---:|"]
     for r in results:
-        label = _label(r, base_date, show_ticker=False)
+        label = _label(r, base_date, show_ticker=False, skip_stale=skip)
         if isinstance(r, QuoteFailure):
             lines.append(f"| {label} | {FAILED} | {NONE} | {NONE} |")
         else:
@@ -56,10 +100,11 @@ def render_market_table(results: list[QuoteResult], base_date: date | None) -> s
 
 def render_sector_table(results: list[QuoteResult], base_date: date | None) -> str:
     """results は騰落率順に並べ替え済みであること"""
+    skip = uniform_stale(results)
     lines = ["| 順位 | セクター | 騰落率 | 終値 |", "|---:|---|---:|---:|"]
     rank = 0
     for r in results:
-        label = _label(r, base_date, show_ticker=True)
+        label = _label(r, base_date, show_ticker=True, skip_stale=skip)
         if isinstance(r, QuoteFailure):
             lines.append(f"| {NONE} | {label} | {FAILED} | {NONE} |")
         else:
@@ -70,9 +115,10 @@ def render_sector_table(results: list[QuoteResult], base_date: date | None) -> s
 
 def render_stock_table(results: list[QuoteResult], base_date: date | None) -> str:
     """results は騰落率順に並べ替え済みであること（単位はドル）"""
+    skip = uniform_stale(results)
     lines = ["| 銘柄 | 終値 | 前日比 | 騰落率 |", "|---|---:|---:|---:|"]
     for r in results:
-        label = _label(r, base_date, show_ticker=True)
+        label = _label(r, base_date, show_ticker=True, skip_stale=skip)
         if isinstance(r, QuoteFailure):
             lines.append(f"| {label} | {FAILED} | {NONE} | {NONE} |")
         else:

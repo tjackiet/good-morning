@@ -1,0 +1,478 @@
+{# standalone=False はアーティファクト用（claude.ai が doctype・html・head・body を付けるので書かない） #}
+{% if standalone %}
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% endif %}
+<title>モーニングレター</title>
+<style>
+/* 上がり＝ティールの緑・下がり＝赤（ユーザー指定のローソク足の色が基準。緑は同じ色合い・明るさのまま
+   鮮やかさだけを上げた #179889、赤は #cb5b51）。グラフのガイドの検証スクリプトで、色覚の違いでも
+   見分けられることをライト・ダークとも確認済み（2026-11-18）。色だけに頼らず、必ず ▲▼ と +/− を添える。
+   文字用の色は同じ色合いの濃い版（ライト）・明るい版（ダーク）で、どちらもコントラスト 4.5:1 以上。
+   RSI の線は上がり・下がりの意味を持たないので、別の青（--series）にする。 */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --card: #ffffff;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.10);
+  --up: #179889;
+  --down: #cb5b51;
+  --neutral: #b8b7af;
+  --up-text: #007a6c;
+  --down-text: #a93c35;
+  --up-wash: rgba(23, 152, 137, 0.12);
+  --down-wash: rgba(203, 91, 81, 0.12);
+  --neutral-wash: #f0efec;
+  --series: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --card: #1f1f1e;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --ring: rgba(255, 255, 255, 0.10);
+    --up: #179889;
+    --down: #cb5b51;
+    --neutral: #6b6a65;
+    --up-text: #45b7a8;
+    --down-text: #ee7a6e;
+    --up-wash: rgba(23, 152, 137, 0.18);
+    --down-wash: rgba(203, 91, 81, 0.18);
+    --neutral-wash: #383835;
+    --series: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e; --ink: #f0efec; --ink-2: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --axis: #383835; --ring: rgba(255, 255, 255, 0.10);
+  --up: #179889; --down: #cb5b51; --neutral: #6b6a65; --up-text: #45b7a8; --down-text: #ee7a6e;
+  --up-wash: rgba(23, 152, 137, 0.18); --down-wash: rgba(203, 91, 81, 0.18); --neutral-wash: #383835;
+  --series: #3987e5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+header.top { padding: 8px 0 4px; }
+.date { font-size: 13px; color: var(--ink-2); margin: 0; }
+h1 { font-size: 22px; margin: 2px 0 0; font-weight: 700; letter-spacing: 0.02em; }
+section.card {
+  background: var(--card);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 14px 0;
+}
+h2 { font-size: 15px; margin: 0 0 10px; font-weight: 700; }
+h2 .sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; }
+.up-t { color: var(--up-text); }
+.down-t { color: var(--down-text); }
+.neutral-t { color: var(--ink-2); }
+
+/* 今朝のまとめ */
+.stance {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 700; font-size: 15px;
+  padding: 4px 12px; border-radius: 999px;
+}
+.stance.up { background: var(--up-wash); color: var(--up-text); }
+.stance.down { background: var(--down-wash); color: var(--down-text); }
+.stance.neutral { background: var(--neutral-wash); color: var(--ink-2); }
+ol.lines { margin: 12px 0 0; padding-left: 1.4em; }
+ol.lines li { margin: 6px 0; }
+.note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.warn { font-size: 12px; color: var(--down-text); margin-top: 8px; }
+
+/* BTC の大きな数字と、主要な指標のタイル */
+.hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.hero .label { font-size: 13px; color: var(--ink-2); width: 100%; }
+.hero .value { font-size: 44px; font-weight: 700; line-height: 1.1; letter-spacing: 0.01em; }
+.hero .unit { font-size: 16px; color: var(--ink-2); }
+.hero .delta { font-size: 16px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+@media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 10px; }
+.tile .t-label { font-size: 12px; color: var(--ink-2); }
+.tile .t-value { font-size: 17px; font-weight: 700; }
+.tile .t-delta { font-size: 12px; font-weight: 600; }
+.tile .t-note, .stale { font-size: 11px; color: var(--down-text); }
+.stale { margin-top: 8px; }
+
+/* BTC のテクニカル（行＝判定の要素、列＝日足・週足・月足） */
+table.tech { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
+table.tech th, table.tech td { padding: 6px 4px; border-top: 1px solid var(--grid); vertical-align: top; text-align: left; }
+table.tech thead th { border-top: none; text-align: center; vertical-align: bottom; }
+table.tech thead th .tf-name { display: block; font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+table.tech tbody th { width: 27%; color: var(--muted); font-weight: 500; font-size: 11.5px; }
+table.tech td .main { font-weight: 600; }
+table.tech .detail { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.35; font-weight: 400; }
+table.tech thead .chip { white-space: nowrap; font-size: 11px; padding: 1px 6px; }
+.chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.chip.up { background: var(--up-wash); color: var(--up-text); }
+.chip.down { background: var(--down-wash); color: var(--down-text); }
+.chip.neutral { background: var(--neutral-wash); color: var(--ink-2); }
+.sig-icon { margin-right: 2px; }
+.sig-icon.up { color: var(--up); } .sig-icon.down { color: var(--down); } .sig-icon.neutral { color: var(--neutral); }
+.rsi-box { margin-top: 12px; }
+svg.rsi { width: 100%; max-width: 420px; height: auto; display: block; }
+svg.rsi .line { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg.rsi .dot { fill: var(--series); stroke: var(--card); stroke-width: 2; }
+svg.rsi .hit { fill: transparent; }
+svg.rsi .grid { stroke: var(--axis); stroke-width: 1; }
+svg.rsi .zone { fill: var(--neutral-wash); }
+svg.rsi .axis { fill: var(--muted); font-size: 10px; }
+svg.rsi .end-label { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.comment { margin-top: 10px; font-size: 14px; }
+
+/* 増減の棒（中央が0。上がりは右へ、下がりは左へ） */
+.bars { display: grid; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 38%) 1fr 72px; align-items: center; gap: 8px; font-size: 13px; }
+.bar-label { line-height: 1.3; min-width: 0; }
+.bar-label .nm { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-label .tk { display: block; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.bar-track { display: grid; grid-template-columns: 1fr 1fr; height: 12px; }
+.half { display: flex; height: 12px; }
+.half.neg { justify-content: flex-end; border-right: 1px solid var(--axis); }
+.bar { display: block; height: 12px; }
+.bar.up { background: var(--up); border-radius: 0 4px 4px 0; }
+.bar.down { background: var(--down); border-radius: 4px 0 0 4px; }
+.bar-value { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bar-row.ref .bar-label { font-weight: 700; }
+.legend { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* 予定 */
+ul.events { list-style: none; margin: 0; padding: 0; }
+ul.events li { display: grid; grid-template-columns: 112px 1fr; gap: 8px; padding: 7px 0; border-top: 1px solid var(--grid); font-size: 13.5px; }
+ul.events li:first-child { border-top: none; }
+.ev-when { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.imp { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; margin-right: 6px; border: 1px solid var(--axis); color: var(--ink-2); }
+.imp.high { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.ev-extra { font-size: 12px; color: var(--muted); }
+details.later { margin-top: 10px; font-size: 13px; }
+details.later summary { cursor: pointer; color: var(--ink-2); }
+
+/* ニュース */
+article.news { padding: 10px 0; border-top: 1px solid var(--grid); }
+article.news:first-of-type { border-top: none; padding-top: 0; }
+article.news h3 { font-size: 15px; margin: 0 0 2px; line-height: 1.45; }
+article.news .body { font-size: 13.5px; }
+article.news h3 a { color: var(--ink); text-decoration: none; }
+article.news h3 a:hover { text-decoration: underline; }
+.meta { font-size: 11.5px; color: var(--muted); margin-bottom: 4px; }
+.implication { font-size: 13px; background: var(--surface); border-left: 3px solid var(--axis); padding: 6px 10px; margin-top: 6px; border-radius: 0 6px 6px 0; }
+
+/* 暗号資産への示唆 */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+.two h3 { font-size: 13px; margin: 0 0 4px; }
+.two ul { margin: 0; padding-left: 1.2em; font-size: 13.5px; }
+.two li { margin: 4px 0; }
+.conclusion { margin-top: 12px; font-size: 14px; }
+
+/* すべての指標の表 */
+table.markets { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.markets th, table.markets td { padding: 5px 4px; border-top: 1px solid var(--grid); text-align: right; }
+table.markets th:first-child, table.markets td:first-child { text-align: left; }
+table.markets thead th { color: var(--muted); font-weight: 500; border-top: none; }
+footer { font-size: 11.5px; color: var(--muted); padding: 8px 0 32px; }
+footer ul { padding-left: 1.2em; margin: 4px 0; }
+.failed { color: var(--muted); font-size: 13px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+{% if standalone %}
+</head>
+<body>
+{% endif %}
+<div class="wrap">
+
+<header class="top">
+  <p class="date">{{ v.date_label }}・{{ v.generated_at }} 作成</p>
+  <h1>モーニングレター</h1>
+</header>
+
+{# ---- 今朝のまとめ ---- #}
+<section class="card" aria-labelledby="h-summary">
+  <h2 id="h-summary">今朝のまとめ</h2>
+  {% if v.summary %}
+    {% set s = STANCE[v.summary.stance] %}
+    <span class="stance {{ s.cls }}"><span aria-hidden="true">{{ s.icon }}</span>{{ v.summary.stance }}</span>
+    <ol class="lines">
+      {% for line in v.summary.lines %}<li>{{ line }}</li>{% endfor %}
+    </ol>
+    <p class="note">Claude がこのレポートの数値から作成。文中の数値は元データと機械的に照合済み。</p>
+    {% if v.summary.unverified %}<p class="warn">⚠ 次の数値は元データで確認できませんでした: {{ v.summary.unverified|join(", ") }}</p>{% endif %}
+  {% else %}
+    <p class="failed">今朝のまとめは作成できませんでした。</p>
+  {% endif %}
+</section>
+
+{# ---- BTC と主要な指標 ---- #}
+<section class="card" aria-labelledby="h-markets">
+  <h2 id="h-markets">マーケット<span class="sub">米国は前日のNY終値・※は取得時点の値</span></h2>
+  {% if v.markets %}
+    {% set h = v.markets.hero %}
+    {% if h and not h.failed %}
+    <div class="hero">
+      <span class="label">{{ h.name }}（bitbank・24時間）</span>
+      <span class="value">{{ h.value }}</span><span class="unit">円</span>
+      <span class="delta {{ h.pct|dir }}-t">{{ "▲" if h.direction > 0 else "▼" if h.direction < 0 else "●" }} {{ h.pct_label }}（{{ h.change }}）</span>
+    </div>
+    {% endif %}
+    <div class="tiles">
+      {% for t in v.markets.tiles %}
+      <div class="tile">
+        <div class="t-label">{{ t.name }}{% if t.live %} ※{% endif %}</div>
+        {% if t.failed %}
+          <div class="t-value muted">取得失敗</div>
+        {% else %}
+          <div class="t-value">{{ t.value }}</div>
+          <div class="t-delta {{ t.direction|dir }}-t">{{ "▲" if t.direction > 0 else "▼" if t.direction < 0 else "●" }} {{ t.pct_label if t.pct is not none else t.change }}</div>
+          {% if t.date_note %}<div class="t-note">{{ t.date_note }}</div>{% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if v.markets.note %}<p class="stale">{{ v.markets.note }}</p>{% endif %}
+    <details class="later">
+      <summary>すべての指標を見る</summary>
+      <table class="markets">
+        <thead><tr><th>項目</th><th>終値</th><th>前日比</th><th>前日比%</th></tr></thead>
+        <tbody>
+        {% for r in v.markets.rows %}
+          <tr>
+            <td>{{ r.name }}{% if r.live %} ※{% endif %}{% if r.date_note %}<span class="tk">（{{ r.date_note }}）</span>{% endif %}</td>
+            {% if r.failed %}<td class="muted">取得失敗</td><td>—</td><td>—</td>
+            {% else %}<td class="num">{{ r.value }}</td><td class="num {{ r.direction|dir }}-t">{{ r.change }}</td><td class="num {{ r.direction|dir }}-t">{{ r.pct_label }}</td>{% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- BTC のテクニカル ---- #}
+<section class="card" aria-labelledby="h-btc">
+  <h2 id="h-btc">BTC のテクニカル<span class="sub">最新の足は形成中</span></h2>
+  {% if v.btc %}
+    <table class="tech">
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr">要素</span></th>
+          {% for tf in v.btc.timeframes %}
+          {% set vd = VERDICT[tf.verdict] %}
+          <th scope="col"><span class="tf-name">{{ tf.label }}</span><span class="chip {{ vd.cls }}"><span aria-hidden="true">{{ vd.icon }}</span> {{ tf.verdict }} {{ "%+d"|format(tf.total) }}</span></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in v.btc.timeframes[0].signals %}
+        {% set i = loop.index0 %}
+        <tr>
+          <th scope="row">{{ row.name }}</th>
+          {% for tf in v.btc.timeframes %}
+          {% set sg = tf.signals[i] %}
+          {% set sc = SCORE[sg.score] %}
+          <td title="{{ sg.label }}"><span class="sig-icon {{ sc.cls }}" aria-hidden="true">{{ sc.icon }}</span><span class="main">{{ sg.main }}</span>{% if sg.detail %}<span class="detail">{{ sg.detail }}</span>{% endif %}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        <tr>
+          <th scope="row">BB の位置<span class="detail">点数外</span></th>
+          {% for tf in v.btc.timeframes %}<td><span class="main">{{ tf.bb }}</span></td>{% endfor %}
+        </tr>
+      </tbody>
+    </table>
+    <p class="legend">▲ 強気 +1・● 中立 0・▼ 弱気 −1。5つの合計が +2 以上で強気、−2 以下で弱気。</p>
+    {% if v.btc.rsi_history %}
+    <div class="rsi-box">
+      <h2>日足 RSI(14) の推移</h2>
+      {{ rsi_chart }}
+      <p class="legend">灰色の帯は 70 以上（買われすぎ）と 30 以下（売られすぎ）。最後の点は形成中の足。</p>
+    </div>
+    {% endif %}
+    {% if v.btc.comment %}<p class="comment">{{ v.btc.comment }}</p>{% endif %}
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 暗号資産 ---- #}
+<section class="card" aria-labelledby="h-crypto">
+  <h2 id="h-crypto">暗号資産<span class="sub">bitbank・24時間の変化率</span></h2>
+  {% if v.crypto %}
+    {% set rows = [v.crypto.btc] + v.crypto.rows %}
+    <div class="bars">
+      {% for r in rows|bars %}
+      <div class="bar-row{% if loop.first %} ref{% endif %}" title="{{ r.label }} {{ r.pct_label }}">
+        <span class="bar-label"><span class="nm">{{ r.label }}</span><span class="tk">{{ r.price }}円</span></span>
+        <span class="bar-track">
+          <span class="half neg">{% if r.dir < 0 %}<span class="bar down" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+          <span class="half pos">{% if r.dir > 0 %}<span class="bar up" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+        </span>
+        <span class="bar-value {{ r.pct|dir }}-t">{{ "▲" if r.dir > 0 else "▼" if r.dir < 0 else "●" }} {{ r.pct_label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="legend">対BTC（BTC との変化率の差）: {% for r in v.crypto.rows %}{{ r.label.split("/")[0] }} {{ r.vs_btc_label }}{% if not loop.last %}・{% endif %}{% endfor %}</p>
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- セクター ---- #}
+<section class="card" aria-labelledby="h-sectors">
+  <h2 id="h-sectors">米国セクター別騰落率<span class="sub">SPDR セクターETF</span></h2>
+  {% if v.sectors %}
+    <div class="bars">
+      {% for r in v.sectors|bars %}
+      <div class="bar-row" title="{{ r.name }} {{ r.pct_label }}">
+        <span class="bar-label"><span class="nm">{{ r.name }}</span><span class="tk">{{ r.ticker }}{% if r.date_note %}・{{ r.date_note }}{% endif %}</span></span>
+        {% if r.failed %}<span></span><span class="bar-value muted">取得失敗</span>
+        {% else %}
+        <span class="bar-track">
+          <span class="half neg">{% if r.dir < 0 %}<span class="bar down" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+          <span class="half pos">{% if r.dir > 0 %}<span class="bar up" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+        </span>
+        <span class="bar-value {{ r.pct|dir }}-t">{{ "▲" if r.dir > 0 else "▼" if r.dir < 0 else "●" }} {{ r.pct_label }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if v.notes and v.notes.sectors %}<p class="stale">{{ v.notes.sectors }}</p>{% endif %}
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 米国株ウォッチリスト ---- #}
+<section class="card" aria-labelledby="h-stocks">
+  <h2 id="h-stocks">米国株ウォッチリスト<span class="sub">終値（ドル）・前日比</span></h2>
+  {% if v.stocks %}
+    <div class="bars">
+      {% for r in v.stocks|bars %}
+      <div class="bar-row" title="{{ r.name }} {{ r.pct_label }}">
+        <span class="bar-label"><span class="nm">{{ r.name }}</span><span class="tk">{{ r.ticker }}{% if not r.failed %}・{{ r.value }}{% endif %}{% if r.date_note %}・{{ r.date_note }}{% endif %}</span></span>
+        {% if r.failed %}<span></span><span class="bar-value muted">取得失敗</span>
+        {% else %}
+        <span class="bar-track">
+          <span class="half neg">{% if r.dir < 0 %}<span class="bar down" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+          <span class="half pos">{% if r.dir > 0 %}<span class="bar up" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+        </span>
+        <span class="bar-value {{ r.pct|dir }}-t">{{ "▲" if r.dir > 0 else "▼" if r.dir < 0 else "●" }} {{ r.pct_label }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if v.notes and v.notes.stocks %}<p class="stale">{{ v.notes.stocks }}</p>{% endif %}
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 今後の予定 ---- #}
+<section class="card" aria-labelledby="h-cal">
+  <h2 id="h-cal">今後の予定<span class="sub">日本時間・7日以内</span></h2>
+  {% if v.calendar %}
+    {% if v.calendar.detail %}
+    <ul class="events">
+      {% for e in v.calendar.detail %}
+      <li>
+        <span class="ev-when">{{ e.when }}</span>
+        <span>
+          <span class="imp{% if e.importance == '高' %} high{% endif %}">{{ e.importance }}</span>{{ e.title }}
+          {% if e.forecast or e.estimated or e.note %}<span class="ev-extra">{% if e.forecast %}予想 {{ e.forecast }}{% endif %}{% if e.estimated %}{% if e.forecast %}・{% endif %}日付は推定{% endif %}{% if e.note %}・{{ e.note }}{% endif %}</span>{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">予定はありません。</p>{% endif %}
+    {% if v.calendar.later %}
+    <details class="later">
+      <summary>8〜30日の予定（{{ v.calendar.later|length }}件）</summary>
+      <ul class="events">
+        {% for e in v.calendar.later %}
+        <li><span class="ev-when">{{ e.when }}</span><span><span class="imp{% if e.importance == '高' %} high{% endif %}">{{ e.importance }}</span>{{ e.title }}</span></li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 主要ニュース ---- #}
+<section class="card" aria-labelledby="h-news">
+  <h2 id="h-news">主要ニュース</h2>
+  {% if v.news %}
+    {% for n in v.news %}
+    <article class="news">
+      <h3>{% if n.url|safe_url %}<a href="{{ n.url|safe_url }}" target="_blank" rel="noopener noreferrer">{{ n.title }}</a>{% else %}{{ n.title }}{% endif %}</h3>
+      <div class="meta">{{ n.source }}・{{ n.category }}{% if n.published %}・{{ n.published }}{% endif %}</div>
+      {% if n.summary %}<div class="body">{{ n.summary }}</div>{% elif n.snippet %}<div class="body muted">（配信元の概要）{{ n.snippet }}</div>{% endif %}
+      {% if n.implication %}<div class="implication"><strong>暗号資産への示唆</strong>: {{ n.implication }}</div>{% endif %}
+    </article>
+    {% endfor %}
+  {% elif v.status.news == "ok" %}
+    <p class="muted">直近24時間に該当する記事はありませんでした。</p>
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 暗号資産への示唆 ---- #}
+<section class="card" aria-labelledby="h-impl">
+  <h2 id="h-impl">暗号資産への示唆</h2>
+  {% if v.implications %}
+    <div class="two">
+      <div><h3 class="up-t">▲ 強気材料</h3><ul>{% for b in v.implications.bullish %}<li>{{ b }}</li>{% endfor %}</ul></div>
+      <div><h3 class="down-t">▼ 弱気材料</h3><ul>{% for b in v.implications.bearish %}<li>{{ b }}</li>{% endfor %}</ul></div>
+    </div>
+    <p class="conclusion"><strong>まとめ</strong>: {{ v.implications.conclusion }}</p>
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+<footer>
+  {% if v.failed_sections %}<p>⚠ 取得失敗: {{ v.failed_sections|join("、") }}</p>{% endif %}
+  {% for n in v.notices %}<p>⚠ {{ n }}</p>{% endfor %}
+  <p>データ基準時刻</p>
+  <ul>{% for b in v.basis %}<li>{{ b }}</li>{% endfor %}</ul>
+  <p>データ出典: {{ v.sources|join(" / ") }}</p>
+  <p>{{ v.disclaimer }}</p>
+</footer>
+
+</div>
+{% if standalone %}
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>今朝のカード</title>
+<style>
+/* Discord に載せる画像のカード。スマホの幅で読む前提で、幅 420px・ダークの配色で固定する。
+   上がり・下がりの色はビジュアルレポートと同じ（ティールの緑 #179889・赤 #cb5b51 と、その文字用の明るい版）。 */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d; --card: #1a1a19; --tile: #222220; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --ring: rgba(255, 255, 255, 0.10); --grid: #2c2c2a;
+  --up-text: #45b7a8; --down-text: #ee7a6e; --neutral-text: #c3c2b7;
+  --up-wash: rgba(23, 152, 137, 0.20); --down-wash: rgba(203, 91, 81, 0.20); --neutral-wash: #383835;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink);
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+.card { width: 420px; padding: 18px 18px 14px; background: var(--card); }
+.head { display: flex; justify-content: space-between; align-items: baseline; }
+.title { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+.date { font-size: 13px; color: var(--ink-2); }
+.stance { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px;
+  font-size: 15px; font-weight: 700; padding: 3px 12px; border-radius: 999px; }
+.up { color: var(--up-text); } .down { color: var(--down-text); } .neutral { color: var(--neutral-text); }
+.stance.up, .chip.up { background: var(--up-wash); }
+.stance.down, .chip.down { background: var(--down-wash); }
+.stance.neutral, .chip.neutral { background: var(--neutral-wash); }
+ol { margin: 10px 0 0; padding-left: 1.3em; font-size: 13.5px; line-height: 1.55; }
+ol li { margin: 4px 0; }
+.btc { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid); }
+.btc-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.btc-label { font-size: 12px; color: var(--ink-2); }
+.btc-value { font-size: 26px; font-weight: 700; }
+.btc-unit { font-size: 13px; color: var(--ink-2); }
+.btc-delta { font-size: 14px; font-weight: 600; }
+.chips { display: flex; gap: 6px; margin-top: 8px; }
+.chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip .tf { color: var(--ink-2); font-weight: 500; margin-right: 3px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+.tile { background: var(--tile); border: 1px solid var(--ring); border-radius: 8px; padding: 6px 8px; }
+.t-label { font-size: 11px; color: var(--ink-2); }
+.t-value { font-size: 15px; font-weight: 700; }
+.t-delta { font-size: 11.5px; font-weight: 600; }
+.t-note { font-size: 10px; color: var(--down-text); }
+.events { margin-top: 12px; font-size: 12px; color: var(--ink-2); }
+.events b { color: var(--ink); font-weight: 600; }
+.foot { margin-top: 12px; font-size: 10.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head">
+    <span class="title">モーニングレター</span>
+    <span class="date">{{ v.date_label }}</span>
+  </div>
+
+  {% if v.summary %}
+    {% set s = STANCE[v.summary.stance] %}
+    <div class="stance {{ s.cls }}">{{ s.icon }} {{ v.summary.stance }}</div>
+    <ol>{% for line in v.summary.lines %}<li>{{ line }}</li>{% endfor %}</ol>
+  {% endif %}
+
+  {% if v.markets and v.markets.hero and not v.markets.hero.failed %}
+  {% set h = v.markets.hero %}
+  <div class="btc">
+    <div class="btc-row">
+      <span class="btc-label">{{ h.name }}</span>
+      <span class="btc-value">{{ h.value }}</span><span class="btc-unit">円</span>
+      <span class="btc-delta {{ h.direction|dir }}">{{ "▲" if h.direction > 0 else "▼" if h.direction < 0 else "●" }} {{ h.pct_label }}<span class="btc-unit">（24時間）</span></span>
+    </div>
+    {% if v.btc %}
+    <div class="chips">
+      {% for tf in v.btc.timeframes %}
+      {% set vd = VERDICT[tf.verdict] %}
+      <span class="chip {{ vd.cls }}"><span class="tf">{{ tf.label }}</span><span class="{{ vd.cls }}">{{ vd.icon }} {{ tf.verdict }} {{ "%+d"|format(tf.total) }}</span></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if v.markets and v.markets.tiles %}
+  <div class="tiles">
+    {% for t in v.markets.tiles %}
+    <div class="tile">
+      <div class="t-label">{{ t.name }}{% if t.live %} ※{% endif %}</div>
+      {% if t.failed %}<div class="t-value">—</div>
+      {% else %}
+      <div class="t-value">{{ t.value }}</div>
+      <div class="t-delta {{ t.direction|dir }}">{{ "▲" if t.direction > 0 else "▼" if t.direction < 0 else "●" }} {{ t.pct_label if t.pct is not none else t.change }}</div>
+      {% if t.date_note %}<div class="t-note">{{ t.date_note }}</div>{% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if v.calendar %}
+  {% set important = v.calendar.detail|selectattr("importance", "equalto", "高")|list %}
+  {% if important %}
+  <div class="events">今後7日の重要な予定: {% for e in important[:3] %}<b>{{ e.when }}</b> {{ e.title }}{% if not loop.last %}／{% endif %}{% endfor %}</div>
+  {% endif %}
+  {% endif %}
+
+  <div class="foot">
+    {% if v.failed_sections %}⚠ 取得失敗: {{ v.failed_sections|join("、") }}・{% endif %}
+    米国は前日のNY終値・※は取得時点の値・{{ v.generated_at }} 作成・投資助言ではありません
+  </div>
+</div>
+</body>
+</html>

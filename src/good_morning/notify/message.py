@@ -1,40 +1,39 @@
-"""通知に載せる短いメッセージ（判定・3行の要約・BTC・リンク）
+"""通知に載せる短いメッセージ
 
-数値は ctx.data の計算済みの値と、照合済みの Claude のまとめだけを使う（大原則1）。
+保存したビューモデル（outputs/YYYY-MM-DD.json）から作る。数値はビューモデルの計算済みの値と、
+照合済みの Claude のまとめだけを使う（大原則1）。画像のカードを添付するときは、カードに
+同じ内容が載るので、文章は判定とリンクだけにする（通知のプレビューで判定が見えるように）。
 """
 
-from good_morning.context import RunContext
-from good_morning.crypto.tickers import format_price_text
-from good_morning.reporter.markdown import STATUS_FAILED, Section
-from good_morning.synthesis.builders import STANCE_MARKS
-from good_morning.synthesis.claude import Synthesis
-from good_morning.timeutil import format_month_day
+STANCE_MARKS = {"リスクオン": "🟢", "様子見": "⚪", "リスクオフ": "🔴"}
 
 
 def build_notification(
-    ctx: RunContext, sections: list[Section], link: str | None, report_path: str
+    view: dict, link: str | None, report_path: str, with_image: bool = False
 ) -> str:
-    lines = [f"**🌅 モーニングレター {format_month_day(ctx.now)}**"]
+    lines = [f"**🌅 モーニングレター {view.get('date_label', '')}**"]
 
-    synthesis = ctx.data.get("synthesis")
-    if isinstance(synthesis, Synthesis):
-        lines.append(f"判定: {STANCE_MARKS[synthesis.stance]} **{synthesis.stance}**")
-        lines.extend(f"{i}. {line}" for i, line in enumerate(synthesis.summary_lines, 1))
+    summary = view.get("summary")
+    if summary:
+        lines.append(f"判定: {STANCE_MARKS.get(summary['stance'], '')} **{summary['stance']}**")
+        if not with_image:
+            lines.extend(f"{i}. {line}" for i, line in enumerate(summary["lines"], 1))
     else:
         lines.append("（今朝のまとめは作成できませんでした）")
 
-    btc_parts = []
-    watch = ctx.data.get("crypto_watchlist")
-    if watch:
-        btc = watch["btc"]
-        btc_parts.append(f"{btc.label} {format_price_text(btc.last_text)}円（24時間 {btc.change_pct:+.2f}%）")
-    daily = (ctx.data.get("btc_assessments") or {}).get("1day")
-    if daily is not None:
-        btc_parts.append(f"日足 {daily.verdict}（{daily.total:+d}）")
-    if btc_parts:
-        lines.append("・".join(btc_parts))
+    if not with_image:
+        parts = []
+        hero = (view.get("markets") or {}).get("hero")
+        if hero and not hero.get("failed"):
+            parts.append(f"{hero['name']} {hero['value']}円（24時間 {hero['pct_label']}）")
+        timeframes = (view.get("btc") or {}).get("timeframes") or []
+        if timeframes:
+            daily = timeframes[0]
+            parts.append(f"{daily['label']} {daily['verdict']}（{daily['total']:+d}）")
+        if parts:
+            lines.append("・".join(parts))
 
-    failed = [s.title for s in sections if s.status == STATUS_FAILED]
+    failed = view.get("failed_sections") or []
     if failed:
         lines.append(f"⚠ 取得失敗: {'、'.join(failed)}")
 

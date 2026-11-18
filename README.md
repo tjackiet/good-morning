@@ -2,7 +2,7 @@
 
 暗号資産投資の判断に役立つ「モーニングレター」を自動生成する CLI ツールです。
 株式・債券・為替・コモディティ・暗号資産の数値、今後30日の予定、主要ニュースを集約し、
-Markdown のレポートとして出力します。メイン銘柄は BTC です。
+Markdown のレポートと、グラフ入りのビジュアルレポート（HTML）として出力します。メイン銘柄は BTC です。
 
 > 開発中です（定時実行の設定が未完了）。進み具合は [CLAUDE.md](CLAUDE.md) のフェーズ表を参照してください。
 
@@ -12,6 +12,8 @@ Markdown のレポートとして出力します。メイン銘柄は BTC です
 - 一部のデータ取得に失敗しても、該当欄を「取得失敗」と表示してレポート全体は出力します
 - 銘柄・フィード・キーワード・イベント・判定基準は YAML で変更できます
 - 時刻はすべて JST で表示し、データごとの基準時刻（NY終値／取得時点）を明記します
+- ビジュアルレポートはライト・ダークの両方に対応し、上がり・下がりは色だけでなく ▲▼ と +/− でも示します
+- Discord には、判定と主要な数値をまとめた画像のカードを添付して通知できます
 
 ## データ取得元
 
@@ -29,7 +31,8 @@ Markdown のレポートとして出力します。メイン銘柄は BTC です
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+.venv/bin/pip install -e ".[dev,card]"
+.venv/bin/python -m playwright install chromium          # 画像のカード用（任意）
 
 cp .env.example .env                                     # API キーを記入
 cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
@@ -41,7 +44,7 @@ cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
 ## 使い方
 
 ```bash
-# モーニングレターを生成して outputs/YYYY-MM-DD.md に保存
+# モーニングレターを生成して outputs/ に保存
 .venv/bin/good-morning run
 
 # Notion にも書き出す（任意。.env に NOTION_PAGE_ID が必要）
@@ -53,9 +56,25 @@ cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
 # 通知の文面を確かめるだけ（送らない）
 .venv/bin/good-morning run --notify-preview
 
+# 保存済みのレポートの通知を後から送る（リンクは --link か .env の REPORT_URL）
+.venv/bin/good-morning notify --link https://example.com/report
+
+# 保存済みのデータからビジュアルレポートの HTML を作り直す
+.venv/bin/good-morning render
+
 # RSS 記事の通過/除外の理由を確認
 .venv/bin/good-morning collect-cmd --explain
 ```
+
+`run` で `outputs/` に保存されるもの:
+
+| ファイル | 内容 |
+|---|---|
+| `YYYY-MM-DD.md` | Markdown のレポート（本体） |
+| `YYYY-MM-DD.json` | ビジュアルレポートの元データ（計算済みの数値と文章） |
+| `YYYY-MM-DD.html` | ビジュアルレポート（ブラウザで開ける） |
+| `YYYY-MM-DD-artifact.html` | 同じレポートの claude.ai アーティファクト用 |
+| `YYYY-MM-DD-card.png` | Discord に添付する画像のカード（Playwright が入っているとき） |
 
 ログは `logs/YYYY-MM-DD.log` に出力されます。
 
