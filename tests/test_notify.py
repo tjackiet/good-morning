@@ -190,7 +190,17 @@ def test_notification_without_synthesis():
 @pytest.mark.parametrize(
     "text,url",
     [
+        # 2026-11-18 に実際に返ってきた応答（id は伏せた）
+        (
+            (
+                '{"pages":[{"id":"x","url":"https://app.notion.com/p/0123abcd?pvs=204",'
+                '"properties":{"title":"モーニングレター 2026年11月18日（水）"}}]}'
+            ),
+            "https://app.notion.com/p/0123abcd?pvs=204",
+        ),
         ('{"pages":[{"url":"https://www.notion.so/2de5abc123"}]}', "https://www.notion.so/2de5abc123"),
+        ("Created: https://app.notion.com/p/0123abcd", "https://app.notion.com/p/0123abcd"),
+        ('{"pages": []}', None),
         ("Created page: https://www.notion.so/My-Page-0123abcd.", "https://www.notion.so/My-Page-0123abcd"),
         ("no url here", None),
         (None, None),

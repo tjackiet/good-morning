@@ -114,12 +114,13 @@
 - `good-morning run --notify` で Discord に送る（`notify/`）。`--notify-preview` は文面の表示だけ、`--force-notify` は同じ日の再送。同じ日は1回だけ（`outputs/.notified/YYYY-MM-DD.discord` に記録）。
 - 文面: 判定・3行の要約・BTC の価格と日足の判定・取得失敗のセクション・リンク（Notion に書き出せたらそのページ、なければ保存先のパス）。
 - 送り方は「未決事項」の Discord の方針どおり（User-Agent、`allowed_mentions: {"parse": []}`、`?wait=true`、429 は `retry_after` 秒待って1回だけ再送、理由に URL を入れない、例外を投げない）。flags（4 = プレビューなし、4096 = 無音）は Discord の公式ドキュメントで確認済み（2026-11-18）。設定は `config/notify.yaml`。
-- Notion: `run --publish` で書き出し、応答の文章からページの URL を取り出して通知のリンクにする（`publisher/notion_mcp.py` の `extract_page_url`）。
+- Notion: `run --publish` で書き出し、応答からページの URL を取り出して通知のリンクにする（`publisher/notion_mcp.py` の `extract_page_url`）。応答は JSON（`{"pages": [{"id", "url", "properties"}]}`）で、URL は `https://app.notion.com/p/<id>?pvs=204` の形（2026-11-18 に実際に書き出して確認）。許可は aion のときの `~/.mcp-auth` がそのまま使えた（ブラウザは開かなかった）。
 
 ### ネットワーク（フェーズ5で判明）
 
 - **会社のネットワークでは Fortinet の機器が一部の HTTPS を検査し、社内の CA で証明書を署名し直す**（2026-11-18 に CoinPost・The Block・FRB・api.anthropic.com で確認）。httpx が標準で使う certifi には社内の CA がないため `CERTIFICATE_VERIFY_FAILED` になる。検証は切らず、OS の証明書ストアで検証する（`net.py` の `ssl_context()`、truststore）。RSS・FRED・Discord の通信はこれを使う。anthropic SDK（httpx2）は最初から OS の証明書ストアを使っている。
 - `npx`（bitbank-lab-mcp・Notion MCP）は fnm でインストールした Node を使っている（PATH はシェルごとの一時的な場所）。launchd から動かすときは PATH に注意（フェーズ6）。
+- Node（mcp-remote）も標準では独自の証明書の束を使うため、会社のネットワークでは mcp.notion.com で `unable to verify the first certificate` になった。npx で起動する MCP サーバーには `NODE_OPTIONS=--use-system-ca`（Node 22.15 / 23.8 以降）を渡している（`net.py` の `NODE_SYSTEM_CA_ENV`）。
 
 ### bitbank-lab-mcp の注意（検証で判明済み）
 
