@@ -43,6 +43,13 @@ class StockEntry(BaseModel):
     ticker: str
     name: str
     related: list[str] = Field(default_factory=list)
+    # ニュースで拾う会社名（日本語・英語）。主要ニュースの記事選定のキーワードに足す
+    keywords: list[str] = Field(default_factory=list)
+
+    @field_validator("keywords")
+    @classmethod
+    def _strip_keywords(cls, value: list[str]) -> list[str]:
+        return [word.strip() for word in value if word.strip()]
 
     @field_validator("ticker")
     @classmethod
@@ -66,14 +73,19 @@ class Watchlist(BaseModel):
         return self.source is not None and self.source.name == WATCHLIST_EXAMPLE_FILE
 
 
-def resolve_watchlist_path(config_dir: Path | None = None) -> Path:
-    """読み込むファイルを決める。watchlist.yaml がなければ example を返して警告する"""
+def resolve_watchlist_path(config_dir: Path | None = None, quiet: bool = False) -> Path:
+    """読み込むファイルを決める。watchlist.yaml がなければ example を返して警告する
+
+    quiet=True は警告を出さない（ニュースのキーワードなど、2度目の読み込みで警告が重ならないように）。
+    """
     config_dir = config_dir or CONFIG_DIR
     path = config_dir / WATCHLIST_FILE
     if path.exists():
         return path
 
     example = config_dir / WATCHLIST_EXAMPLE_FILE
+    if quiet:
+        return example
     logger.warning(
         "%s が見つからないため %s を読み込みます。"
         "手元で `cp config/%s config/%s` してから銘柄を編集してください。",
@@ -100,9 +112,9 @@ def _truncate(items: list, limit: int, label: str) -> list:
     return items[:limit]
 
 
-def load_watchlist(config_dir: Path | None = None) -> Watchlist:
+def load_watchlist(config_dir: Path | None = None, quiet: bool = False) -> Watchlist:
     """ウォッチリストを読み込み、上限を超えた分を切り詰めて返す"""
-    path = resolve_watchlist_path(config_dir)
+    path = resolve_watchlist_path(config_dir, quiet=quiet)
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 

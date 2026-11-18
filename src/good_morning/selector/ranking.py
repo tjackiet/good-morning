@@ -8,6 +8,8 @@
 カテゴリごとの配分は config/feeds.yaml の categories.<カテゴリ>.quota で決める。
 """
 
+from collections.abc import Callable
+
 from good_morning.collector.rss import load_feeds_config
 from good_morning.models import Article
 
@@ -62,10 +64,14 @@ def select_for_summary(
     articles: list[Article],
     max_articles: int = DEFAULT_MAX_ARTICLES,
     quota: dict[str, int] | None = None,
+    priority: Callable[[Article], bool] | None = None,
+    priority_slots: int = 0,
 ) -> list[Article]:
     """要約対象をスコア順・カテゴリ別クォータで選ぶ
 
-    各カテゴリに割り当てた枠までスコア上位から取り、記事数が枠に満たない
+    priority に当たる記事（ウォッチリストの企業の決算の記事など）があれば、スコア上位から
+    priority_slots 本までを先に取る（その記事のカテゴリの枠も使う。合計本数は変えない）。
+    次に各カテゴリに割り当てた枠までスコア上位から取り、記事数が枠に満たない
     カテゴリの余り枠は全体のスコア順で埋める（クォータのせいで要約枠が
     空くのを避けるため）。返り値は全体のスコア順。
     """
@@ -73,22 +79,35 @@ def select_for_summary(
     allocated = allocate_quota(max_articles, quota)
 
     selected: list[Article] = []
+    chosen: set[int] = set()
     used_slots: dict[str, int] = dict.fromkeys(allocated, 0)
 
+    def take(article: Article) -> None:
+        selected.append(article)
+        chosen.add(id(article))
+        used_slots[article.category] = used_slots.get(article.category, 0) + 1
+
+    if priority is not None and priority_slots > 0:
+        for article in ranked:
+            if len(selected) >= min(priority_slots, max_articles):
+                break
+            if priority(article):
+                take(article)
+
     for article in ranked:
-        slots = allocated.get(article.category, 0)
-        if used_slots.get(article.category, 0) < slots:
-            used_slots[article.category] = used_slots.get(article.category, 0) + 1
-            selected.append(article)
+        if len(selected) >= max_articles:
+            break
+        if id(article) in chosen:
+            continue
+        if used_slots.get(article.category, 0) < allocated.get(article.category, 0):
+            take(article)
 
     # クォータで埋まらなかった枠をスコア順で補充
-    if len(selected) < max_articles:
-        chosen = {id(a) for a in selected}
-        for article in ranked:
-            if len(selected) >= max_articles:
-                break
-            if id(article) not in chosen:
-                selected.append(article)
+    for article in ranked:
+        if len(selected) >= max_articles:
+            break
+        if id(article) not in chosen:
+            take(article)
 
     return rank_articles(selected)
 

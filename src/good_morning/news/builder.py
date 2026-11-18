@@ -14,6 +14,8 @@ from good_morning.context import RunContext, SectionContent
 from good_morning.models import Article
 from good_morning.processor import summarizer
 from good_morning.selector import collect, select_for_summary
+from good_morning.selector.keywords import WATCHLIST_SETTINGS
+from good_morning.selector.scoring import is_earnings_article
 from good_morning.timeutil import format_jst, format_month_day
 
 logger = logging.getLogger(__name__)
@@ -70,7 +72,12 @@ def build_news(ctx: RunContext) -> SectionContent:
     if not articles:
         return SectionContent(body="直近24時間に該当する記事はありませんでした。", basis=basis)
 
-    selected = select_for_summary(articles)
+    # ウォッチリストの企業の決算の記事を優先して1本（keywords.yaml の watchlist.earnings_slots）
+    selected = select_for_summary(
+        articles,
+        priority=is_earnings_article,
+        priority_slots=WATCHLIST_SETTINGS.earnings_slots,
+    )
     ctx.data["news"] = selected
 
     notes = []

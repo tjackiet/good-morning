@@ -29,6 +29,8 @@ def fixtures_dir() -> Path:
 BITBANK_FIXTURE = "bitbank/snapshot_20261117_2309.json"
 # 2026-11-17 23:20 JST に yfinance から取得した決算日の実データ（見本のウォッチリスト＋related）
 YF_EARNINGS_FIXTURE = "yfinance/earnings_20261117_2320.json"
+# 2026-11-18 11:15 JST（NVDA の決算の発表後。EPS の実績 2.68 が入っている）に取得した実データ
+YF_EARNINGS_AFTER_FIXTURE = "yfinance/earnings_20261118_1115.json"
 # 2026-11-18 08:58 JST に FRED（fred/releases/dates）から取得した実データ（12/19 までの分）
 FRED_FIXTURE = "fred/release_dates_20261118_0858.json"
 

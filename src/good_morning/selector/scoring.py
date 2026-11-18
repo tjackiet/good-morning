@@ -18,14 +18,23 @@
 4. キーワードフィルタ免除フィードへの下駄
    免除フィード（arXiv等）はマッチ0件でも通過するため、そのままだとスコア0で
    常に最下位に沈み、クォータで枠を確保しても中身が新しさ順にしかならない。
+5. ウォッチリストの企業の決算の記事への加点
+   会社名（watchlist.yaml）と決算の語（keywords.yaml の watchlist.earnings_words）が
+   両方出る記事。決算の朝に、その記事が BTC・FRB の記事に埋もれないようにする。
 """
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from good_morning.models import Article
-from good_morning.selector.filters import matched_keywords_in_text
-from good_morning.selector.keywords import DEFAULT_KEYWORD_WEIGHT, KEYWORD_GROUPS, KEYWORD_WEIGHTS
+from good_morning.selector.filters import compile_keyword_pattern, matched_keywords_in_text
+from good_morning.selector.keywords import (
+    DEFAULT_KEYWORD_WEIGHT,
+    KEYWORD_GROUPS,
+    KEYWORD_WEIGHTS,
+    WATCHLIST_KEYWORDS,
+    WATCHLIST_SETTINGS,
+)
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -41,6 +50,11 @@ RECENCY_HALF_LIFE_HOURS = 24.0
 
 # キーワードフィルタ免除フィードに与える下駄
 EXEMPT_SOURCE_BASE_POINTS = 2.0
+
+# ウォッチリストの企業の決算の記事（会社名と決算の語が両方出る記事）への加点
+EARNINGS_BONUS_POINTS = WATCHLIST_SETTINGS.earnings_bonus
+_WATCHLIST_WORDS = frozenset(WATCHLIST_KEYWORDS)
+_EARNINGS_PATTERNS = [compile_keyword_pattern(w) for w in WATCHLIST_SETTINGS.earnings_words]
 
 
 def keyword_weight(keyword: str) -> float:
@@ -59,6 +73,20 @@ def keyword_score(article: Article, ignore: frozenset[str] = frozenset()) -> flo
     return sum(keyword_weight(kw) * TITLE_MULTIPLIER for kw in title_hits) + sum(
         keyword_weight(kw) for kw in summary_hits
     )
+
+
+def is_earnings_article(article: Article, ignore: frozenset[str] = frozenset()) -> bool:
+    """ウォッチリストの会社名と決算の語が、タイトルか概要に両方出る記事か"""
+    if not _WATCHLIST_WORDS or not _EARNINGS_PATTERNS:
+        return False
+    text = article.title + " " + (article.summary or "")
+    names = (set(matched_keywords_in_text(text)) & _WATCHLIST_WORDS) - ignore
+    return bool(names) and any(pattern.search(text) for pattern in _EARNINGS_PATTERNS)
+
+
+def earnings_bonus(article: Article, ignore: frozenset[str] = frozenset()) -> float:
+    """ウォッチリストの企業の決算の記事への加点"""
+    return EARNINGS_BONUS_POINTS if is_earnings_article(article, ignore) else 0.0
 
 
 def recency_score(article: Article, now: datetime | None = None) -> float:
@@ -85,7 +113,7 @@ def score_article(
 ) -> float:
     """記事の総合スコアを算出する"""
     ignore = (ignore_by_source or {}).get(article.source, frozenset())
-    score = keyword_score(article, ignore) + recency_score(article, now=now)
+    score = keyword_score(article, ignore) + earnings_bonus(article, ignore) + recency_score(article, now=now)
     if article.source in exempt_sources:
         score += EXEMPT_SOURCE_BASE_POINTS
     return score

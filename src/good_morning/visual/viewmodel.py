@@ -174,11 +174,28 @@ def _event_view(e) -> dict:
     }
 
 
+def _result_view(r) -> dict:
+    from good_morning.schedule.builder import eps_label, surprise_label
+
+    pct = r.surprise_pct
+    return {
+        "when": f"{format_month_day(r.when.date())} {r.when:%H:%M}",
+        "name": r.name,
+        "importance": r.importance,
+        "reported_label": eps_label(r.reported_eps),  # None なら取得元に未反映
+        "estimate_label": eps_label(r.eps_estimate),
+        "surprise_label": surprise_label(r),
+        "direction": 0 if pct is None or round(pct, 1) == 0 else (1 if pct > 0 else -1),
+    }
+
+
 def _calendar(ctx: RunContext) -> dict | None:
     data = ctx.data.get("calendar")
     if not data:
         return None
     return {
+        "recent": [_result_view(r) for r in data.get("recent", [])],
+        "recent_hours": data.get("recent_hours"),
         "detail": [_event_view(e) for e in data["detail"]],
         "later": [_event_view(e) for e in data["later"]],
     }

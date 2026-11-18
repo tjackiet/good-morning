@@ -117,3 +117,30 @@ def test_category_breakdown_counts_per_category(make_article):
     ]
 
     assert category_breakdown(articles) == {"crypto": 2, "macro": 1}
+
+
+def test_priority_article_takes_a_slot_without_changing_the_total(make_article):
+    """決算の記事（priority）はスコアが低くても1本入り、そのカテゴリの枠を使う"""
+    crypto = [_scored(make_article, "crypto", 100 - i, f"c{i}") for i in range(20)]
+    macro = [_scored(make_article, "macro", 50 - i, f"m{i}") for i in range(20)]
+    official = [_scored(make_article, "official", 30 - i, f"o{i}") for i in range(20)]
+    earnings = _scored(make_article, "macro", 1.0, "Nvidia earnings")
+    earnings_2 = _scored(make_article, "macro", 0.5, "Nvidia results")
+
+    selected = select_for_summary(
+        crypto + macro + official + [earnings, earnings_2],
+        priority=lambda a: a.title.startswith("Nvidia"),
+        priority_slots=1,
+    )
+
+    assert len(selected) == 5
+    assert earnings in selected and earnings_2 not in selected
+    assert category_breakdown(selected) == {"crypto": 2, "macro": 2, "official": 1}
+
+
+def test_priority_is_ignored_when_slots_are_zero_or_nothing_matches(make_article):
+    articles = [_scored(make_article, "crypto", 10 - i, f"c{i}") for i in range(10)]
+
+    baseline = select_for_summary(articles)
+    assert select_for_summary(articles, priority=lambda a: True, priority_slots=0) == baseline
+    assert select_for_summary(articles, priority=lambda a: False, priority_slots=1) == baseline

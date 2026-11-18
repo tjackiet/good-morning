@@ -5,6 +5,7 @@ from datetime import date, datetime
 import pytest
 from conftest import (
     FRED_FIXTURE,
+    YF_EARNINGS_AFTER_FIXTURE,
     YF_EARNINGS_FIXTURE,
     earnings_frame,
     load_fixture_json,
@@ -14,9 +15,11 @@ from good_morning.collector.fred import parse_release_dates
 from good_morning.collector.market_data import earnings_from_raw, fetch_earnings
 from good_morning.schedule.config import EventsConfig, load_events_config
 from good_morning.schedule.events import (
+    EarningsResult,
     ScheduledEvent,
     fred_events,
     next_earnings_event,
+    recent_earnings_result,
     split_by_detail,
     static_events,
     to_jst,
@@ -29,8 +32,11 @@ NOW = datetime(2026, 11, 17, 23, 20, tzinfo=JST)  # 決算の固定データを�
 MORNING = datetime(2026, 11, 18, 7, 15, tzinfo=JST)  # 定時実行の時刻
 
 
-def _earnings(ticker: str):
-    raw = load_fixture_json(YF_EARNINGS_FIXTURE)["earnings"][ticker]
+AFTER = datetime(2026, 11, 18, 11, 15, tzinfo=JST)  # 発表後の固定データを取った時刻
+
+
+def _earnings(ticker: str, fixture: str = YF_EARNINGS_FIXTURE):
+    raw = load_fixture_json(fixture)["earnings"][ticker]
     return earnings_from_raw(ticker, raw["info"], earnings_frame(raw["earnings_dates"]))
 
 
@@ -139,6 +145,78 @@ def test_past_info_falls_back_to_earnings_dates_as_estimate():
 def test_earnings_already_reported_is_not_shown():
     """定時実行（11/18 7:15）の時点で NVDA の決算（11/18 6:00）は過去なので出さない"""
     assert next_earnings_event(_earnings("NVDA"), name="x", importance="中", now=MORNING) is None
+
+
+def test_recent_result_with_reported_eps():
+    """発表後（11/18 11:15）の実データ: 実績 2.68・予想 2.47"""
+    result = recent_earnings_result(
+        _earnings("NVDA", YF_EARNINGS_AFTER_FIXTURE),
+        name="エヌビディア", importance="中", now=AFTER, hours=24,
+    )
+
+    assert result.when == datetime(2026, 11, 18, 6, 0, tzinfo=JST)
+    assert result.name == "エヌビディア（NVDA）"
+    assert (result.eps_estimate, result.reported_eps) == (2.47, 2.68)
+    assert round(result.surprise_pct, 1) == 8.5
+
+
+def test_recent_result_before_eps_is_reflected():
+    """定時実行（7:15）の時点で取得元に実績がまだない（発表前に取った実データで再現）"""
+    result = recent_earnings_result(
+        _earnings("NVDA"), name="エヌビディア", importance="中", now=MORNING, hours=24
+    )
+
+    assert (result.eps_estimate, result.reported_eps, result.surprise_pct) == (2.47, None, None)
+
+
+@pytest.mark.parametrize(
+    "now,hours",
+    [
+        (NOW, 24),  # 発表前（23:20）はまだ予定のほう
+        (datetime(2026, 11, 19, 6, 0, tzinfo=JST), 24),  # ちょうど24時間後は期間外
+        (MORNING, 0),  # 0 なら出さない
+    ],
+)
+def test_recent_result_window(now, hours):
+    assert recent_earnings_result(
+        _earnings("NVDA", YF_EARNINGS_AFTER_FIXTURE), name="x", importance="中", now=now, hours=hours
+    ) is None
+
+
+def test_recent_result_falls_back_to_confirmed_info_only():
+    """行がなくても info の確定した日時が期間内なら出す。推定の日付は使わない"""
+    nvda = _earnings("NVDA")
+    no_rows = earnings_from_raw(
+        "NVDA",
+        {"isEarningsDateEstimate": False, "earningsTimestampStart": nvda.next_start.timestamp()},
+        None,
+    )
+    estimated = earnings_from_raw(
+        "NVDA",
+        {"isEarningsDateEstimate": True, "earningsTimestampStart": nvda.next_start.timestamp()},
+        None,
+    )
+
+    result = recent_earnings_result(no_rows, name="x", importance="中", now=MORNING, hours=24)
+    assert result is not None and result.reported_eps is None
+    assert recent_earnings_result(estimated, name="x", importance="中", now=MORNING, hours=24) is None
+
+
+@pytest.mark.parametrize(
+    "estimate,reported,expected",
+    [(2.47, 2.68, 8.5), (-0.09, -0.05, 44.4), (1.0, 0.9, -10.0), (0.0, 0.1, None), (None, 0.1, None)],
+)
+def test_surprise_pct(estimate, reported, expected):
+    """予想比は |予想| で割る（赤字予想より良ければプラス）"""
+    result = EarningsResult(
+        when=MORNING, name="x", importance="中", eps_estimate=estimate, reported_eps=reported
+    )
+    pct = result.surprise_pct
+    assert (None if pct is None else round(pct, 1)) == expected
+
+
+def test_shipped_recent_hours():
+    assert CONFIG.earnings.recent_hours == 24
 
 
 def test_fetch_earnings_uses_yfinance_boundary(fake_yfinance):

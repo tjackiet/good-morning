@@ -7,6 +7,25 @@
 # 英語のフィード（CoinDesk・The Block・Bloomberg・FRB・SEC）があるので、日本語と英語の両方を書く。
 # 英語の語は単語の境界で区切ってマッチする（例: "SEC" は "SECTOR" にはマッチしない）。
 
+# ウォッチリストの企業（watchlist.yaml の stocks[].keywords に書いた会社名）の扱い。
+# 会社名はここではなくウォッチリストに書く（銘柄を入れ替えたらニュースも追従する）。
+watchlist:
+  weight: 3           # 会社名がマッチしたときの重み
+  # 会社名と次の語の両方が出る記事（決算の記事）に earnings_bonus を足す。
+  # 決算の語だけでは記事を通さない（ウォッチリスト外の企業の決算で枠が埋まらないように）。
+  earnings_words:
+    - 決算
+    - 業績
+    - 売上高
+    - earnings
+    - results
+    - revenue
+    - guidance
+  earnings_bonus: 8   # 暗号資産の語が2つある記事（12点）より上に来るように（会社名 3×2 + 8 = 14点）
+  # 主要ニュース（既定5本）のうち、決算の記事に優先して回す本数。合計の本数は変えない。0 で優先しない。
+  # 加点だけだと BTC・FRB の記事（20点前後）に負けることがあるため（2026-11-18 の NVIDIA の決算で確認）。
+  earnings_slots: 1
+
 keywords:
   金融政策:
     weight: 3

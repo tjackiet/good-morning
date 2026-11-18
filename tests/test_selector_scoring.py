@@ -111,3 +111,51 @@ def test_score_articles_assigns_score_field(make_article):
 
     assert market.score > other.score
     assert other.score == RECENCY_MAX_POINTS  # キーワード0件でも新しさ分は付く
+
+
+# --- ウォッチリストの企業と決算の記事 ----------------------------------------------------
+# 会社名は見本のウォッチリスト（config/watchlist.example.yaml）の stocks[].keywords から入る
+
+
+def test_watchlist_company_names_are_keywords():
+    from good_morning.selector.keywords import (
+        WATCHLIST_CATEGORY,
+        WATCHLIST_KEYWORDS,
+        WATCHLIST_SETTINGS,
+    )
+
+    assert "Nvidia" in WATCHLIST_KEYWORDS and "エヌビディア" in WATCHLIST_KEYWORDS
+    assert KEYWORD_WEIGHTS[WATCHLIST_CATEGORY] == WATCHLIST_SETTINGS.weight == 3.0
+    assert keyword_weight("Nvidia") == 3.0
+    assert keyword_weight("Coinbase") == 3.0  # 「企業」カテゴリ（2）にもあるが、ウォッチリストの重みで数える
+
+
+def test_earnings_article_of_watchlist_company_gets_bonus(make_article):
+    """実際の見出し（2026-11-18 の CoinDesk）: 会社名と決算の語が両方ある記事だけに加点する"""
+    from good_morning.selector.scoring import EARNINGS_BONUS_POINTS, earnings_bonus
+
+    earnings = make_article(title="Nvidia shares rise on earnings beat, raised outlook")
+    company_only = make_article(title="Willy Shih on Risks With Nvidia's Supply Chain")
+    other_company = make_article(title="Walmart earnings beat estimates")
+    japanese = make_article(title="エヌビディア決算、売上高が予想を上回る")
+
+    assert EARNINGS_BONUS_POINTS == 8.0
+    assert earnings_bonus(earnings) == EARNINGS_BONUS_POINTS
+    assert earnings_bonus(japanese) == EARNINGS_BONUS_POINTS
+    assert earnings_bonus(company_only) == 0.0
+    assert earnings_bonus(other_company) == 0.0  # ウォッチリスト外の決算は加点しない
+    assert earnings_bonus(earnings, ignore=frozenset({"Nvidia"})) == 0.0
+
+
+def test_earnings_slots_come_from_yaml():
+    from good_morning.selector.keywords import WATCHLIST_SETTINGS
+
+    assert WATCHLIST_SETTINGS.earnings_slots == 1
+
+
+def test_earnings_article_outscores_typical_bitcoin_headline(make_article):
+    """決算の朝に、決算の記事が BTC の一般的な記事（暗号資産の語2つ）に埋もれないこと"""
+    earnings = make_article(title="Nvidia shares rise on earnings beat, raised outlook")
+    bitcoin = make_article(title="Bitcoin miners sell as crypto prices slide")
+
+    assert score_article(earnings, now=NOW) > score_article(bitcoin, now=NOW)

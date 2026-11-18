@@ -216,6 +216,8 @@ def collect_cmd(
     """RSSフィードから記事を収集する（ニュース選定の確認用）"""
     _init()
     if explain:
+        from good_morning.selector.scoring import is_earnings_article
+
         articles = explain_selection(days=days)
         exempt = keyword_filter_exempt_sources()
         for article in articles:
@@ -227,6 +229,8 @@ def collect_cmd(
                 keywords = "-（キーワードフィルタ免除）"
             else:
                 keywords = "-"
+            if is_earnings_article(article):
+                keywords += "（決算の記事）"
             typer.echo(
                 f"[{status}] score={article.score:5.1f} | {article.source} "
                 f"| {article.title[:60]} | matched: {keywords}"

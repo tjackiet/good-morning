@@ -93,6 +93,9 @@ claude.ai の非公開アーティファクトに載せる）と、Discord に�
 - **FRED の API キーを漏らさない**: httpx の例外メッセージは URL（＝キー）を含むので使わず、例外の型名を原因までたどって残す（例 `ConnectError ← SSLCertVerificationError`）。`raise ... from None` でトレースバックにも残さない。httpx のログは WARNING 以上にしてあるので、リクエストの URL もログに出ない。
 - **決算日**: yfinance の `info`（決算日に関わる項目だけ。価格には使わない）と `get_earnings_dates()` を使う。実データで確かめた `info` の意味: `isEarningsDateEstimate=False` かつ未来 → 確定、`True` → 推定、`False` かつ過去 → 前回の決算（次回は `get_earnings_dates()` の未発表の行から推定）。EPS 予想は `get_earnings_dates()` の日付が近い行から。`Ticker.calendar` は古い日付を返すことがあった（HOOD）ので使わない。related の関連企業は `shortName`（会社名）で表示する。
 - 決算日の取得は1銘柄2回の通信（info と get_earnings_dates）。見本のウォッチリスト（関連企業込み8銘柄）で約10秒。
+- **直近の決算**（2026-11-18 に追加）: 米国企業の多くは引け後すぐ（日本時間 6:00 ごろ）に決算を出すので、6:45 のレポートでは「今後の予定」から消えてしまう。そこで、過去24時間（`events.yaml` の `earnings.recent_hours`）に発表予定の時刻を過ぎた決算を、セクションの先頭に EPS の実績・予想・予想比で出す（`events.py` の `recent_earnings_result`）。数値は同じ `get_earnings_dates()` の行から取るので通信は増えない。予想比は `(実績 - 予想) / |予想|`。
+  - 発表後の `get_earnings_dates()` には実績が入る（NVDA: 予想 2.47 → 実績 2.68。2026-11-18 11:15 に確認、`tests/fixtures/yfinance/earnings_20261118_1115.json`）。発表直後に取得元へ入るまでの時間は未確認なので、まだなければ「未反映」と出す。推定の日付（`isEarningsDateEstimate=True`）は実際に発表したか分からないので使わない。
+  - 取れるのは EPS だけ（売上高はない）。Claude に渡すデータ・ビジュアルレポート・画像のカードにも載せる。
 
 ### 主要ニュース（フェーズ4で実装）
 
@@ -105,6 +108,10 @@ claude.ai の非公開アーティファクトに載せる）と、Discord に�
 - 2026-11-18 に実データで要約を確認。入力についての言及（「詳細は記載されていません」）と単位の換算（$2.35 billion → 23億5000万ドル）が出たため、プロンプトで禁止した（数値は記事の表記のまま）。
 - モデル `claude-sonnet-5` は有効な ID（前の世代。指示書の「aion と同じ」に従った）。同じ価格の後継 `claude-sonnet-5-5` もあるので、変えるかはユーザーの判断。
 - 全フィードが失敗したら、記事0件と区別してセクションを「取得失敗」にする（`fetch_all_feeds` が例外を投げる）。
+- **ウォッチリストの企業の記事**（2026-11-18 に追加）: `watchlist.yaml` の `stocks[].keywords` に書いた会社名（日本語・英語）を「ウォッチリストの企業」カテゴリのキーワードに足す（重みは `keywords.yaml` の `watchlist.weight`）。「Strategy」のような一般的な語は書かない。
+  - 会社名と決算の語（`watchlist.earnings_words`）が両方出る記事を「決算の記事」とし、`earnings_bonus` を足したうえで、5本のうち `earnings_slots`（既定1）本を優先して回す（`ranking.py` の `select_for_summary` の `priority`）。加点だけだと BTC・FRB の記事（20点前後）に負けた（2026-11-18 の NVIDIA の決算で、決算の記事は 18.6点）。
+  - 決算の語だけでは記事を通さない（ウォッチリスト外の企業の決算で枠が埋まらないように）。`collect-cmd --explain` では「（決算の記事）」と表示する。
+  - キーワードは読み込み時に watchlist.yaml（なければ見本）から作る。テストは見本のウォッチリストが前提（手元に watchlist.yaml があると、記事選定のベースラインなどの数値が変わる）。
 
 ### 今朝のまとめ・暗号資産への示唆（フェーズ5で実装）
 
@@ -165,12 +172,12 @@ claude.ai の非公開アーティファクトに載せる）と、Discord に�
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
-| `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
+| `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related`・ニュースで拾う会社名 `keywords` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
 | `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻、終値が未反映のときの取り直し | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
-| `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度、表示する期間 | 済 |
+| `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度と直近の決算を出す期間、表示する期間 | 済 |
 | `feeds.yaml` | 市場ニュースの RSS（暗号資産・マクロ・公的機関）、カテゴリごとの要約枠、フィードごとの `keyword_filter` / `ignore_keywords` | 済 |
-| `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`） | 済 |
+| `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`）、ウォッチリストの企業の重みと決算の記事の扱い（`watchlist`） | 済 |
 | `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト、今朝のまとめ（synthesis）のプロンプト | 済 |
 | `notify.yaml` | Discord 通知の設定（画像のカードの添付・プレビューなし・無音・429 の再送） | 済 |
 

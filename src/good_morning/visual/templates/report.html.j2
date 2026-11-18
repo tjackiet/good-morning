@@ -86,7 +86,7 @@ section.card {
   margin: 14px 0;
 }
 h2 { font-size: 15px; margin: 0 0 10px; font-weight: 700; }
-h2 .sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+h2 .sub, h3 .sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 .num { font-variant-numeric: tabular-nums; }
@@ -173,6 +173,12 @@ ul.events li:first-child { border-top: none; }
 .imp { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; margin-right: 6px; border: 1px solid var(--axis); color: var(--ink-2); }
 .imp.high { background: var(--ink); color: var(--card); border-color: var(--ink); }
 .ev-extra { font-size: 12px; color: var(--muted); }
+h3.cal-h { font-size: 13px; margin: 4px 0 2px; color: var(--ink-2); }
+h3.cal-h + ul.events li:first-child { border-top: none; }
+ul.events.results { margin-bottom: 4px; }
+.eps { display: block; margin-top: 2px; font-size: 13px; }
+.eps .chip { margin-left: 6px; font-size: 11px; padding: 1px 6px; white-space: nowrap; }
+.cal-note { font-size: 11px; color: var(--muted); margin: 2px 0 12px; }
 details.later { margin-top: 10px; font-size: 13px; }
 details.later summary { cursor: pointer; color: var(--ink-2); }
 
@@ -401,6 +407,25 @@ footer ul { padding-left: 1.2em; margin: 4px 0; }
 <section class="card" aria-labelledby="h-cal">
   <h2 id="h-cal">今後の予定<span class="sub">日本時間・7日以内</span></h2>
   {% if v.calendar %}
+    {% if v.calendar.recent %}
+    <h3 class="cal-h">直近の決算<span class="sub">過去{{ v.calendar.recent_hours }}時間・EPS（1株利益）</span></h3>
+    <ul class="events results">
+      {% for r in v.calendar.recent %}
+      <li>
+        <span class="ev-when">{{ r.when }}</span>
+        <span>
+          {{ r.name }}
+          <span class="eps">
+            実績 <b class="num">{{ r.reported_label or "未反映" }}</b><span class="muted">／予想 <span class="num">{{ r.estimate_label or "—" }}</span></span>
+            {% if r.surprise_label %}<span class="chip {{ r.direction|dir }}">{{ "▲" if r.direction > 0 else "▼" if r.direction < 0 else "●" }} 予想比 {{ r.surprise_label }}</span>{% endif %}
+          </span>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="cal-note">EPS は Yahoo Finance の値（会社の発表とは調整のしかたが違うことがある）。時刻は取得元の目安。{% if v.calendar.recent|selectattr("reported_label", "none")|list %}「未反映」は、発表予定の時刻を過ぎたが取得元に実績がまだないもの。{% endif %}</p>
+    <h3 class="cal-h">今後7日</h3>
+    {% endif %}
     {% if v.calendar.detail %}
     <ul class="events">
       {% for e in v.calendar.detail %}
