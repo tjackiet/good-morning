@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from conftest import FRED_SYNTHETIC_FIXTURE, load_fixture_json
+from conftest import FRED_FIXTURE, load_fixture_json
 
 from good_morning.collector import fred
 from good_morning.collector.fred import FredError, fetch_release_dates, get_api_key
@@ -23,22 +23,25 @@ def _response(status: int, payload):
 
 
 def test_fetch_release_dates_filters_by_window(monkeypatch):
-    payload = load_fixture_json(FRED_SYNTHETIC_FIXTURE)
+    payload = load_fixture_json(FRED_FIXTURE)
     seen_params = []
 
-    def fake_get(url, params=None, headers=None, timeout=None):
+    def fake_get(url, params=None, headers=None, timeout=None, verify=None):
         seen_params.append(params)
+        assert verify is not None  # OS の証明書ストアで検証する
         assert headers["User-Agent"]
         return _response(200, payload)
 
     monkeypatch.setattr(fred.httpx, "get", fake_get)
 
-    rows = fetch_release_dates(date(2026, 11, 17), date(2026, 12, 17), api_key=API_KEY)
+    rows = fetch_release_dates(date(2026, 11, 18), date(2026, 12, 17), api_key=API_KEY)
 
-    assert [r.date for r in rows][-1] == date(2026, 12, 11)  # 2027-01-13 は期間外
+    assert rows and all(date(2026, 11, 18) <= r.date <= date(2026, 12, 17) for r in rows)
+    assert rows[-1].date == date(2026, 12, 17)
     assert seen_params[0]["include_release_dates_with_no_data"] == "true"
     assert seen_params[0]["sort_order"] == "asc"
-    assert len(seen_params) == 1  # count が1ページに収まっている
+    # 1ページ目の最後（12/19）で期間を過ぎたので、2ページ目は取りにいかない
+    assert len(seen_params) == 1
 
 
 def test_fetch_release_dates_pages_until_window_end(monkeypatch):
@@ -51,7 +54,7 @@ def test_fetch_release_dates_pages_until_window_end(monkeypatch):
 
     calls = []
 
-    def fake_get(url, params=None, headers=None, timeout=None):
+    def fake_get(url, params=None, headers=None, timeout=None, verify=None):
         calls.append(params["offset"])
         return _response(200, page(params["offset"]))
 

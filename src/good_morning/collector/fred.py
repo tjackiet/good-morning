@@ -14,6 +14,9 @@ from datetime import date
 
 import httpx
 
+from good_morning.errors import cause_chain
+from good_morning.net import ssl_context
+
 logger = logging.getLogger(__name__)
 
 FRED_RELEASE_DATES_URL = "https://api.stlouisfed.org/fred/releases/dates"
@@ -39,19 +42,6 @@ def get_api_key() -> str:
     if not key:
         raise FredError(f"環境変数 {FRED_API_KEY_ENV} が設定されていません（.env を確認）")
     return key
-
-
-def _cause_chain(error: BaseException, depth: int = 4) -> str:
-    """例外の型名を原因までたどって並べる（メッセージは URL を含むので使わない）
-
-    例: "ConnectError ← ConnectError ← SSLCertVerificationError"（証明書の問題だと分かる）
-    """
-    names = []
-    current: BaseException | None = error
-    while current is not None and len(names) < depth:
-        names.append(type(current).__name__)
-        current = current.__cause__ or current.__context__
-    return " ← ".join(names)
 
 
 def _scrub(message: str, api_key: str) -> str:
@@ -96,10 +86,11 @@ def fetch_release_dates(start: date, end: date, api_key: str | None = None) -> l
                 params={**params, "offset": offset},
                 headers={"User-Agent": USER_AGENT},
                 timeout=TIMEOUT_SECONDS,
+                verify=ssl_context(),
             )
         except Exception as e:  # noqa: BLE001
             # from None: 元の例外（メッセージに URL＝API キーを含む）をログのトレースバックに残さない
-            raise FredError(f"FRED に接続できませんでした（{_cause_chain(e)}）") from None
+            raise FredError(f"FRED に接続できませんでした（{cause_chain(e)}）") from None
 
         if response.status_code != 200:
             try:

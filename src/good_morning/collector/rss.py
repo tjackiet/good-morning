@@ -10,6 +10,7 @@ import httpx
 import yaml
 
 from good_morning.models import Article, FeedConfig, FeedsConfig
+from good_morning.net import ssl_context
 from good_morning.paths import CONFIG_DIR
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,9 @@ def fetch_feed(feed_config: FeedConfig) -> list[Article]:
 
     # User-Agentを設定してRSSを取得（一部サイトはブロック対策が必要）
     headers = {"User-Agent": USER_AGENT}
-    response = httpx.get(feed_config.url, headers=headers, follow_redirects=True, timeout=30)
+    response = httpx.get(
+        feed_config.url, headers=headers, follow_redirects=True, timeout=30, verify=ssl_context()
+    )
     response.raise_for_status()
     parsed = feedparser.parse(response.text)
 

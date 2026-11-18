@@ -1,7 +1,7 @@
-"""「今後の予定」セクションのテスト（決算は実データ、FRED は合成データの fixtures）"""
+"""「今後の予定」セクションのテスト（決算・FRED とも実データの fixtures）"""
 
 import pytest
-from conftest import FRED_SYNTHETIC_FIXTURE, YF_EARNINGS_FIXTURE, load_fixture_json
+from conftest import FRED_FIXTURE, YF_EARNINGS_FIXTURE, load_fixture_json
 from test_schedule import MORNING, NOW
 
 from good_morning.collector.fred import FredError, parse_release_dates
@@ -18,7 +18,7 @@ def fake_fred(monkeypatch):
         def _fetch(start, end, api_key=None):
             if error:
                 raise error
-            rows = parse_release_dates(load_fixture_json(FRED_SYNTHETIC_FIXTURE))
+            rows = parse_release_dates(load_fixture_json(FRED_FIXTURE))
             return [r for r in rows if start <= r.date <= end]
 
         monkeypatch.setattr("good_morning.collector.fred.fetch_release_dates", _fetch)

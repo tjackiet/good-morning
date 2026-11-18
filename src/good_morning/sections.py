@@ -3,7 +3,10 @@
 セクションの並びは指示書「5. レポートの骨子」に合わせる。各セクションは
 builder 関数で作り、builder が例外を投げても「取得失敗」として扱って次へ進む
 （失敗理由はログに残す）。builder が未設定のセクションは「未実装」と表示する。
-フェーズを進めるごとに SECTION_SPECS の builder を埋めていく。
+
+作る順番は表示の順番と別で、stage="data" のセクション（数値を取得する）を先に作り、
+stage="synthesis" のセクション（Claude がその数値からまとめを書く）を後に作る。
+最後に、BTCの詳細へ Claude のまとめを追記する。
 """
 
 import logging
@@ -16,6 +19,7 @@ from good_morning.markets.builders import build_markets, build_sectors, build_st
 from good_morning.news.builder import build_news
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, STATUS_PENDING, Section
 from good_morning.schedule.builder import build_calendar
+from good_morning.synthesis.builders import attach_btc_comment, build_implications, build_summary
 
 __all__ = [
     "SECTION_SPECS",
@@ -40,10 +44,12 @@ class SectionSpec:
     title: str
     phase: int
     builder: SectionBuilder | None = None
+    # "data": 数値を取得するセクション（先に作る） / "synthesis": Claude のまとめ（後に作る）
+    stage: str = "data"
 
 
 SECTION_SPECS: list[SectionSpec] = [
-    SectionSpec("summary", "今朝のまとめ", phase=5),
+    SectionSpec("summary", "今朝のまとめ", phase=5, builder=build_summary, stage="synthesis"),
     SectionSpec("markets", "マーケット一覧", phase=1, builder=build_markets),
     SectionSpec("sectors", "セクター別騰落率", phase=1, builder=build_sectors),
     SectionSpec("btc", "BTCの詳細", phase=2, builder=build_btc),
@@ -51,7 +57,13 @@ SECTION_SPECS: list[SectionSpec] = [
     SectionSpec("stock_watchlist", "株式ウォッチリスト", phase=1, builder=build_stock_watchlist),
     SectionSpec("calendar", "今後の予定", phase=3, builder=build_calendar),
     SectionSpec("news", "主要ニュース", phase=4, builder=build_news),
-    SectionSpec("crypto_implications", "暗号資産への示唆", phase=5),
+    SectionSpec(
+        "crypto_implications",
+        "暗号資産への示唆",
+        phase=5,
+        builder=build_implications,
+        stage="synthesis",
+    ),
 ]
 
 
@@ -82,10 +94,17 @@ def build_section(spec: SectionSpec, ctx: RunContext) -> Section:
 
 
 def build_sections(ctx: RunContext, specs: list[SectionSpec] | None = None) -> list[Section]:
+    """数値のセクション → Claude のまとめのセクションの順に作り、表示の順に並べて返す"""
     specs = SECTION_SPECS if specs is None else specs
-    sections = []
-    for spec in specs:
-        section = build_section(spec, ctx)
-        logger.info("  %s: %s", spec.title, STATUS_LABELS[section.status])
-        sections.append(section)
+    built: dict[int, Section] = {}
+    for stage in ("data", "synthesis"):
+        for index, spec in enumerate(specs):
+            if spec.stage != stage:
+                continue
+            section = build_section(spec, ctx)
+            logger.info("  %s: %s", spec.title, STATUS_LABELS[section.status])
+            built[index] = section
+
+    sections = [built[i] for i in range(len(specs))]
+    attach_btc_comment(sections, ctx)
     return sections

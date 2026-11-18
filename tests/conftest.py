@@ -29,8 +29,8 @@ def fixtures_dir() -> Path:
 BITBANK_FIXTURE = "bitbank/snapshot_20261117_2309.json"
 # 2026-11-17 23:20 JST に yfinance から取得した決算日の実データ（見本のウォッチリスト＋related）
 YF_EARNINGS_FIXTURE = "yfinance/earnings_20261117_2320.json"
-# FRED は API キーがないため合成データ（ファイル内の _comment 参照）。キーを入れたら実データに置き換える
-FRED_SYNTHETIC_FIXTURE = "fred/release_dates_synthetic.json"
+# 2026-11-18 08:58 JST に FRED（fred/releases/dates）から取得した実データ（12/19 までの分）
+FRED_FIXTURE = "fred/release_dates_20261118_0858.json"
 
 
 @pytest.fixture(autouse=True)

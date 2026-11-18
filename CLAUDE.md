@@ -32,9 +32,9 @@
 | 0 | リポジトリの準備（aion の複製、AI専用部分の整理、CLAUDE.md） | 済 |
 | 1 | yfinance でマーケット一覧・セクター・株式ウォッチリストの表 | 済 |
 | 2 | bitbank-lab-mcp で BTC の詳細（判定ルール含む）と暗号資産ウォッチリスト | 済 |
-| 3 | 今後の予定（決算・FRED・events.yaml） | 済（FRED は実データ未確認） |
-| 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | 済（要約は実データ未確認） |
-| 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | |
+| 3 | 今後の予定（決算・FRED・events.yaml） | 済 |
+| 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | 済 |
+| 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | 済 |
 | 6 | launchd で毎日 JST 7:15 に定時実行 | |
 
 ## レポートの骨子
@@ -83,7 +83,7 @@
 
 - 3つの取得元（events.yaml・FRED・決算）は独立して扱い、どれかが失敗しても残りで表を作る。失敗はセクション末尾に「⚠ 取得できませんでした」と書き、理由はログへ。
 - **FOMC・日銀**: `events.yaml` に公式ページから転記（年1回）。FOMC 議事要旨は「政策決定の3週間後」（公式ページの記載）で計算した日付を `estimated: true` にしている。FOMC の声明は 14:00（米東部）＝日本時間 4:00（冬）／3:00（夏）。日銀の結果発表は時刻未定なので時刻なし（その日の最後に並ぶ）。
-- **FRED**: `fred/releases/dates`（`include_release_dates_with_no_data=true`、昇順、1000件ずつページ送りし、期間を過ぎたら止める）。返るのは日付だけなので、時刻（米東部）と重要度は `events.yaml` の `fred.releases` で決め、`release_name` の完全一致で拾う。**`FRED_API_KEY` が未設定のため、実データでの確認がまだ**。テストは合成データ（`tests/fixtures/fred/release_dates_synthetic.json`）。キーを入れたら `scripts/capture_schedule_fixture.py` で実データを保存し、`release_name` が一致するかを確かめて置き換える。
+- **FRED**: `fred/releases/dates`（`include_release_dates_with_no_data=true`、昇順、1000件ずつページ送りし、期間を過ぎたら止める）。返るのは日付だけなので、時刻（米東部）と重要度は `events.yaml` の `fred.releases` で決め、`release_name` の完全一致で拾う。2026-11-18 に実データで確認し、8指標すべて名前が一致した（30日でおよそ900件の発表予定が返る）。テストは実データ（`tests/fixtures/fred/release_dates_20261118_0858.json`）。
 - **FRED の API キーを漏らさない**: httpx の例外メッセージは URL（＝キー）を含むので使わず、例外の型名を原因までたどって残す（例 `ConnectError ← SSLCertVerificationError`）。`raise ... from None` でトレースバックにも残さない。httpx のログは WARNING 以上にしてあるので、リクエストの URL もログに出ない。
 - **決算日**: yfinance の `info`（決算日に関わる項目だけ。価格には使わない）と `get_earnings_dates()` を使う。実データで確かめた `info` の意味: `isEarningsDateEstimate=False` かつ未来 → 確定、`True` → 推定、`False` かつ過去 → 前回の決算（次回は `get_earnings_dates()` の未発表の行から推定）。EPS 予想は `get_earnings_dates()` の日付が近い行から。`Ticker.calendar` は古い日付を返すことがあった（HOOD）ので使わない。related の関連企業は `shortName`（会社名）で表示する。
 - 決算日の取得は1銘柄2回の通信（info と get_earnings_dates）。見本のウォッチリスト（関連企業込み8銘柄）で約10秒。
@@ -95,9 +95,31 @@
 - **英語の複数形**: 英語の語は s / es にもマッチする（`ETF` → `ETFs`）。aion の単語境界だけだと英語のフィードで取りこぼすため。
 - **配分**: `feeds.yaml` の `categories.*.quota`（暗号資産2・マクロ2・公的機関1）の合計5本が既定。足りないカテゴリの枠はスコア順で埋める。カテゴリの重み（`keywords.yaml` の `weight`）とあわせて YAML で調整できる。
 - **要約**: Claude Sonnet 5 は既定で thinking が有効なので、応答の先頭が thinking ブロックのことがある。`content[0].text` を決め打ちせず text ブロックだけを使う。thinking も `max_tokens` に含まれるため 4000 にした（aion の 1024 では切れうる）。プロンプトで「記事にない数値を作らない」と指示（大原則1）。
-- **API キーがないとき**: 要約できない旨を書き、配信元の概要（RSS の description から HTML タグを除いて140字）を載せる。**`ANTHROPIC_API_KEY` が未設定のため、要約は実データで未確認**（テストは偽のクライアント）。
+- **API キーがないとき**: 要約できない旨を書き、配信元の概要（RSS の description から HTML タグを除いて140字）を載せる。
+- 2026-11-18 に実データで要約を確認。入力についての言及（「詳細は記載されていません」）と単位の換算（$2.35 billion → 23億5000万ドル）が出たため、プロンプトで禁止した（数値は記事の表記のまま）。
 - モデル `claude-sonnet-5` は有効な ID（前の世代。指示書の「aion と同じ」に従った）。同じ価格の後継 `claude-sonnet-5-5` もあるので、変えるかはユーザーの判断。
 - 全フィードが失敗したら、記事0件と区別してセクションを「取得失敗」にする（`fetch_all_feeds` が例外を投げる）。
+
+### 今朝のまとめ・暗号資産への示唆（フェーズ5で実装）
+
+- 作る順番: 数値のセクション（stage="data"）を先に作り、Claude のセクション（stage="synthesis"）を後に作る。表示は骨子の順のまま。BTCの詳細の末尾に Claude の2〜3行のまとめを後から足す（`sections.py` の `build_sections`）。
+- Claude の呼び出しは1回で、「今朝のまとめ（判定＋3行）」「BTC のまとめ」「強気材料・弱気材料・まとめ」をまとめて作る（`synthesis/claude.py`）。出力の形は `output_config.format`（json_schema）で固定し、pydantic でも検査する。
+- **Claude に渡すのは計算済みの数値だけ**（`synthesis/facts.py`）。レポートの表と同じ表記の文字列にして並べる。新しい計算はしない。
+- **数値の照合**（`synthesis/numbers.py`）: 出力に出てきた数値が渡したデータにあるかを機械的に確かめる（符号・3桁区切り・末尾の0は同じとみなす）。ない数値があれば、その数値を伝えて1回だけ作り直させる。それでも残れば「⚠ 次の数値は元データで確認できませんでした」と表示する。**限界**: 数字の並びで照合するので、「5万ドル台」の「5」のように、別の場所に同じ数字がある換算は見逃す。
+- 失敗（キーがない・形が違う など）は2つのセクションとも「取得失敗」。Claude は1回の実行で1度だけ呼ぶ（失敗も覚えておく）。
+- 実データ（2026-11-18）で1回の実行は約60秒（Claude の呼び出しが計6回: 記事5本＋まとめ1回）。
+
+### 通知（フェーズ5で実装）
+
+- `good-morning run --notify` で Discord に送る（`notify/`）。`--notify-preview` は文面の表示だけ、`--force-notify` は同じ日の再送。同じ日は1回だけ（`outputs/.notified/YYYY-MM-DD.discord` に記録）。
+- 文面: 判定・3行の要約・BTC の価格と日足の判定・取得失敗のセクション・リンク（Notion に書き出せたらそのページ、なければ保存先のパス）。
+- 送り方は「未決事項」の Discord の方針どおり（User-Agent、`allowed_mentions: {"parse": []}`、`?wait=true`、429 は `retry_after` 秒待って1回だけ再送、理由に URL を入れない、例外を投げない）。flags（4 = プレビューなし、4096 = 無音）は Discord の公式ドキュメントで確認済み（2026-11-18）。設定は `config/notify.yaml`。
+- Notion: `run --publish` で書き出し、応答の文章からページの URL を取り出して通知のリンクにする（`publisher/notion_mcp.py` の `extract_page_url`）。
+
+### ネットワーク（フェーズ5で判明）
+
+- **会社のネットワークでは Fortinet の機器が一部の HTTPS を検査し、社内の CA で証明書を署名し直す**（2026-11-18 に CoinPost・The Block・FRB・api.anthropic.com で確認）。httpx が標準で使う certifi には社内の CA がないため `CERTIFICATE_VERIFY_FAILED` になる。検証は切らず、OS の証明書ストアで検証する（`net.py` の `ssl_context()`、truststore）。RSS・FRED・Discord の通信はこれを使う。anthropic SDK（httpx2）は最初から OS の証明書ストアを使っている。
+- `npx`（bitbank-lab-mcp・Notion MCP）は fnm でインストールした Node を使っている（PATH はシェルごとの一時的な場所）。launchd から動かすときは PATH に注意（フェーズ6）。
 
 ### bitbank-lab-mcp の注意（検証で判明済み）
 
@@ -129,7 +151,8 @@
 | `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度、表示する期間 | 済 |
 | `feeds.yaml` | 市場ニュースの RSS（暗号資産・マクロ・公的機関）、カテゴリごとの要約枠、フィードごとの `keyword_filter` / `ignore_keywords` | 済 |
 | `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`） | 済 |
-| `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト（「要約」「暗号資産への示唆」） | 済（今朝のまとめ用はフェーズ5） |
+| `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト、今朝のまとめ（synthesis）のプロンプト | 済 |
+| `notify.yaml` | Discord 通知の設定（プレビューなし・無音・429 の再送） | 済 |
 
 - 暗号資産のペアは bitbank の取扱銘柄と照合し、存在しないペアは警告してスキップする（フェーズ2）。
 - 上限を超えたら先頭から順に採用する（実装済み）。
@@ -139,7 +162,7 @@
 - `ANTHROPIC_API_KEY`: 要約・まとめ用
 - `FRED_API_KEY`: 経済指標の発表予定日
 - `NOTION_PAGE_ID`（任意）: Notion への書き出し先
-- `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（フェーズ5で実装予定）
+- `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（`run --notify`）
 
 ## 未決事項（初期値で進め、変えやすくしておく）
 
@@ -172,6 +195,9 @@ src/good_morning/
   collector/fred.py  FRED の発表予定日の取得
   schedule/          events.yaml の読み込み、予定の組み立て（JST 変換・期間・並べ替え）、今後の予定のセクション
   news/builder.py    主要ニュースのセクション（収集→選定→要約→表示）
+  synthesis/         Claude に渡すデータ（facts）、数値の照合、まとめの呼び出し、今朝のまとめ・暗号資産への示唆のセクション
+  notify/            Discord 通知（文面と送信）
+  net.py / errors.py  OS の証明書ストアで検証する SSLContext、例外の原因の型名
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
   collector/rss.py   RSS 取得（aion から流用）

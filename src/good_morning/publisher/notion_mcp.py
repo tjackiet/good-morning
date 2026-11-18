@@ -7,16 +7,27 @@
 import asyncio
 import logging
 import os
+import re
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from good_morning.net import NODE_SYSTEM_CA_ENV
 from good_morning.reporter.markdown import REPORT_TITLE, format_report_date
 from good_morning.timeutil import now_jst
 
 logger = logging.getLogger(__name__)
 
 NOTION_PAGE_ID_ENV = "NOTION_PAGE_ID"
+_NOTION_URL = re.compile(r"https://(?:www\.)?notion\.(?:so|site)/[^\s\"'<>)\]]+")
+
+
+def extract_page_url(result_text: str | None) -> str | None:
+    """Notion MCP の応答の文章から、作成したページの URL を取り出す（見つからなければ None）"""
+    if not result_text:
+        return None
+    match = _NOTION_URL.search(result_text)
+    return match.group().rstrip(".,") if match else None
 
 
 def get_parent_page_id() -> str:
@@ -31,6 +42,7 @@ async def call_notion_mcp(tool_name: str, arguments: dict) -> dict:
     server_params = StdioServerParameters(
         command="npx",
         args=["-y", "mcp-remote", "https://mcp.notion.com/sse"],
+        env=dict(NODE_SYSTEM_CA_ENV),
     )
 
     async with (
