@@ -39,7 +39,7 @@ FLAG_SUPPRESS_NOTIFICATIONS = 1 << 12
 
 
 class DiscordConfig(BaseModel):
-    attach_card: bool = True
+    attach_card: bool = False  # 画像のカードを添付するか（既定はリンクと文章だけ）
     suppress_embeds: bool = True
     silent: bool = False
     retry_on_429: bool = True

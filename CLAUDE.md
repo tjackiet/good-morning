@@ -3,7 +3,7 @@
 暗号資産投資向けのモーニングレターを自動生成する CLI。毎朝 `good-morning run` を1回実行すると
 （定時実行は JST 6:45、米国市場の引け後）、マーケット数値・今後30日の予定・主要ニュースを集約した
 Markdown が `outputs/YYYY-MM-DD.md` に出力される。あわせて、同じ内容のビジュアルレポート（HTML。
-claude.ai の非公開アーティファクトに載せる）と、Discord に添付する画像のカードも作る。メイン銘柄は BTC。
+claude.ai の非公開アーティファクトに載せる）も作り、Discord にはそのリンクを送る。メイン銘柄は BTC。
 
 - 元の指示書（全文）: [docs/ClaudeCode指示書_モーニングレター.md](docs/ClaudeCode指示書_モーニングレター.md)
 - ベース: 自作ツール aion（https://github.com/tjackiet/aion）。git 履歴は引き継がず、ファイルを出発点にした
@@ -120,6 +120,7 @@ claude.ai の非公開アーティファクトに載せる）と、Discord に�
 - **Claude に渡すのは計算済みの数値だけ**（`synthesis/facts.py`）。レポートの表と同じ表記の文字列にして並べる。新しい計算はしない。
 - **数値の照合**（`synthesis/numbers.py`）: 出力に出てきた数値が渡したデータにあるかを機械的に確かめる（符号・3桁区切り・末尾の0は同じとみなす）。ない数値があれば、その数値を伝えて1回だけ作り直させる。それでも残れば「⚠ 次の数値は元データで確認できませんでした」と表示する。**限界**: 数字の並びで照合するので、「5万ドル台」の「5」のように、別の場所に同じ数字がある換算は見逃す。
 - 失敗（キーがない・形が違う など）は2つのセクションとも「取得失敗」。Claude は1回の実行で1度だけ呼ぶ（失敗も覚えておく）。
+- **前の営業日の終値に日付を添える**（2026-11-18 に追加）: 最新日の終値が取得元に未反映の銘柄は、データに「11/16 終値。11/17 の終値は取得元に未反映」と書き（セクターも）、プロンプトで日付を添えるよう指示している。それでも Claude が落とした（「NVDA-4.12%と大幅下落」）ので、3行の要約・強気材料・弱気材料・まとめの各文を機械的に確かめ、未反映の銘柄の数値（終値・前日比%）があるのに日付がない文の末尾に「（NVDA は 11/16 終値）」を足す（`synthesis/stale.py`）。呼び直しはしない。数字の並びで見るので、同じ数字が別の場所にあると日付を添えすぎることがある。
 - 実データ（2026-11-18）で1回の実行は約60秒（Claude の呼び出しが計6回: 記事5本＋まとめ1回）。
 
 ### 通知（フェーズ5で実装）
@@ -136,11 +137,11 @@ claude.ai の非公開アーティファクトに載せる）と、Discord に�
 - 朝に文字だけでは読む気にならない、というユーザーの要望で追加。`run` のたびに次を `outputs/` に保存する（どれかが失敗しても Markdown は保存済みなので止めない）。
   - `YYYY-MM-DD.json`: ビューモデル（`visual/viewmodel.py` の `build_view`）。レポートの表と同じ表記の文字列だけを持ち、HTML とカードはここから描く。新しい計算はしない（大原則1）。古い形の JSON は `render.py` の `upgrade_view` で補う。
   - `YYYY-MM-DD.html`: 単体で開ける HTML。`YYYY-MM-DD-artifact.html`: アーティファクト用（claude.ai が doctype・html・head・body を付けるので書かない。`render_html(view, standalone=False)`）。
-  - `YYYY-MM-DD-card.png`: Discord に添付する画像のカード（幅 420px・3倍・ダーク固定）。Playwright の Chromium で撮る（`visual/card.py`）。入っていない・起動できないときは画像なしで続ける。
+  - `YYYY-MM-DD-card.png`: Discord に添付する画像のカード（幅 420px・3倍・ダーク固定）。`notify.yaml` の `attach_card: true` のときだけ作る（既定は作らない）。Playwright の Chromium で撮る（`visual/card.py`）。入っていない・起動できないときは画像なしで続ける。
 - テンプレートは Jinja2（`visual/templates/`、自動エスケープ）。リンクは http(s) だけ（`safe_url`）。グラフ（RSI の推移・騰落率の横棒）は外部ライブラリなしの SVG と CSS。`good-morning render [日付]` で JSON から HTML を描き直せる。
 - **色**: 上がり＝ティールの緑 `#179889`、下がり＝赤 `#cb5b51`。ユーザーのローソク足の色 `#429488` を基準に、鮮やかさだけを上げた（そのままでは彩度が足りず、元の赤 `#e66767` はダークで色覚の違いの見分けが足りなかった）。dataviz の検証スクリプトでライト・ダークとも合格（色覚の違いでの差 ΔE 9.0）。文字は同じ色合いの濃い版／明るい版（コントラスト 4.5:1 以上）。色だけに頼らず、必ず ▲▼ と +/− を添える。RSI の線は上下の意味を持たないので別の青。
 - **アーティファクトは非公開**（ユーザーの希望。一般公開はしない）。本人が claude.ai にサインインしているときだけ開ける（2026-11-18 に未ログインのブラウザで「サインインしてください」になることを確認）。毎朝同じ URL に上書きし、URL は `.env` の `REPORT_URL` に入れて通知のリンクにする。別の会話（定時タスク）から上書きするときは、Artifact ツールでその URL を一度 read してから `url` を付けて publish する。
-- **画像のカードは Discord のチャンネルにいる人なら誰でも見られる**（リンク先のアーティファクトは本人だけ）。添付をやめるなら `notify.yaml` の `attach_card: false`（文章に3行の要約と BTC を載せる）。
+- **Discord には画像を添付せず、リンクと文章だけを送る**（2026-11-18 にユーザーと決めた。`attach_card: false`）。理由: アーティファクトは非公開でも本人なら開ける／添付しないほうが文章に3行の要約と BTC を載せられ、スマホの通知でそのまま読める／画像はチャンネルにいる人なら誰でも見られる／iMac に Chromium（約100MB）が要らず、毎朝の失敗の種が減る。カードの仕組みは残してあり、`true` にすれば戻せる。
 
 ### ネットワーク（フェーズ5で判明）
 
@@ -238,11 +239,11 @@ src/good_morning/
 ## 開発コマンド
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev,card]"
-.venv/bin/python -m playwright install chromium   # 画像のカード用（約100MB。なくてもカードなしで動く）
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+# 画像のカードを使うとき（attach_card: true）だけ: pip install -e ".[dev,card]" と python -m playwright install chromium（約100MB）
 .venv/bin/pytest -q
 .venv/bin/ruff check src tests scripts
-.venv/bin/good-morning run                 # outputs/ に md・json・html・アーティファクト用 html・カードの png を生成
+.venv/bin/good-morning run                 # outputs/ に md・json・html・アーティファクト用 html を生成
 .venv/bin/good-morning render             # 保存済みの JSON から HTML を描き直す（テンプレートを直したとき）
 .venv/bin/good-morning notify --preview   # 通知の文面を表示するだけ（送らない）
 .venv/bin/good-morning collect-cmd --explain   # RSS の通過/除外の理由を確認

@@ -20,6 +20,12 @@ def _canonical(token: str) -> str | None:
     return format(normalized, "f")
 
 
+def numbers_in_order(text: str) -> list[str]:
+    """文章に含まれる数値を、出てきた順に正規化した文字列で返す（重複あり）"""
+    canonicals = (_canonical(match.group()) for match in _NUMBER.finditer(text))
+    return [c for c in canonicals if c is not None]
+
+
 def numbers_in(text: str) -> set[str]:
     """文章に含まれる数値を正規化した文字列の集合で返す"""
     found = set()

@@ -5,11 +5,14 @@
 # 値は Discord の公式ドキュメント（Execute Webhook・Message Flags）で確認済み（2026-11-18）。
 
 discord:
-  # 画像のカード（判定・3行の要約・BTC・主要な指標）を添付するか。false ならリンクと文章だけを送る。
+  # 画像のカード（判定・3行の要約・BTC・主要な指標）を添付するか。既定は false（リンクと文章だけ）。
+  #   false: 文章に判定・3行の要約・BTC を載せる（スマホの通知でそのまま読める）。カードの画像も作らない。
+  #   true : 画像を添付し、文章は判定とリンクだけにする。Playwright と Chromium が必要
+  #          （pip install -e ".[card]" と python -m playwright install chromium）。
   # 添付した画像は、Discord のチャンネルに入っている人なら誰でも見られる（リンク先のアーティファクトは本人だけ）。
-  attach_card: true
+  attach_card: false
   # リンクのプレビュー（埋め込み）を出さない（flags の SUPPRESS_EMBEDS = 4）。
-  # Notion の非公開ページはプレビューが空の枠になるため、既定でオン。
+  # 非公開のアーティファクトや Notion のページはプレビューが空の枠になるため、既定でオン。
   suppress_embeds: true
   # プッシュ通知を鳴らさない（flags の SUPPRESS_NOTIFICATIONS = 4096）。
   silent: false
