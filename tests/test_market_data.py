@@ -66,3 +66,16 @@ def test_series_from_history_drops_missing_closes():
 def test_series_from_history_rejects_empty():
     with pytest.raises(MarketDataError):
         series_from_history("X", pd.DataFrame())
+
+
+def test_series_from_history_remembers_empty_close_dates():
+    """Yahoo は最新の日の行を終値が空のまま返すことがある。捨てるが、日付は覚えておく"""
+    index = pd.to_datetime(["2026-11-13", "2026-11-16", "2026-11-17"]).tz_localize(
+        "America/New_York"
+    )
+    history = pd.DataFrame({"Close": [162.85, 156.14, np.nan]}, index=index)
+
+    series = series_from_history("NVDA", history)
+
+    assert [b.date for b in series.bars] == [date(2026, 11, 13), date(2026, 11, 16)]
+    assert series.empty_close_dates == (date(2026, 11, 17),)

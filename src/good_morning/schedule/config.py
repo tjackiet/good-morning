@@ -60,6 +60,8 @@ class EarningsImportance(BaseModel):
 
 class EarningsConfig(BaseModel):
     importance: EarningsImportance = Field(default_factory=EarningsImportance)
+    # 直近の決算（EPS の予想と実績）を出す期間。今から遡ってこの時間以内。0 で出さない
+    recent_hours: int = Field(default=24, ge=0)
 
 
 class EventsConfig(BaseModel):

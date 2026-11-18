@@ -36,6 +36,10 @@ class DailySeries:
     ticker: str
     timezone: str  # 取引所のタイムゾーン（例: America/New_York）
     bars: tuple[DailyBar, ...]  # 古い順
+    # 行はあるのに終値が空（NaN）だった日付。Yahoo は個別株・ETF の最新の日の行を、引け後しばらく
+    # 終値が空のまま返すことがある（2026-11-18 に確認。指数は埋まっていた）。捨てると前の営業日の
+    # 終値が「最新」に見えてしまうので、日付だけ残して呼び出し側で扱う
+    empty_close_dates: tuple[date, ...] = ()
 
 
 def series_from_history(ticker: str, history) -> DailySeries:
@@ -43,13 +47,15 @@ def series_from_history(ticker: str, history) -> DailySeries:
     if history is None or history.empty or "Close" not in history:
         raise MarketDataError(f"{ticker}: 日足データが空です（銘柄コードの誤りか、取得元の不調）")
 
-    closes = history["Close"].dropna()
+    raw = history["Close"]
+    closes = raw.dropna()
     if closes.empty:
         raise MarketDataError(f"{ticker}: 終値がすべて欠損しています")
 
     timezone = str(closes.index.tz) if closes.index.tz is not None else "UTC"
     bars = tuple(DailyBar(date=ts.date(), close=float(value)) for ts, value in closes.items())
-    return DailySeries(ticker=ticker, timezone=timezone, bars=bars)
+    empty = tuple(ts.date() for ts, value in raw.items() if math.isnan(float(value)))
+    return DailySeries(ticker=ticker, timezone=timezone, bars=bars, empty_close_dates=empty)
 
 
 def fetch_daily_series(ticker: str, period: str = HISTORY_PERIOD) -> DailySeries:

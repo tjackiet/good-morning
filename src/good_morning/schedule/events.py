@@ -123,6 +123,57 @@ def next_earnings_event(
     )
 
 
+@dataclass(frozen=True)
+class EarningsResult:
+    """直近に発表予定の時刻を過ぎた決算（EPS の予想と実績）"""
+
+    when: datetime  # 日本時間（取得元の発表予定の時刻）
+    name: str  # 「エヌビディア（NVDA）」
+    importance: Importance
+    eps_estimate: float | None
+    reported_eps: float | None  # 取得元に実績がまだなければ None
+
+    @property
+    def surprise_pct(self) -> float | None:
+        """予想比（%）。実績と予想がそろい、予想が0でないときだけ"""
+        if self.reported_eps is None or self.eps_estimate is None or self.eps_estimate == 0:
+            return None
+        return (self.reported_eps - self.eps_estimate) / abs(self.eps_estimate) * 100
+
+
+def recent_earnings_result(
+    earnings: EarningsInfo, *, name: str, importance: Importance, now: datetime, hours: int
+) -> EarningsResult | None:
+    """今から遡って hours 時間以内に発表予定の時刻を過ぎた決算を1件返す（なければ None）
+
+    get_earnings_dates() の行で、日時が期間内のもの（いちばん新しいもの）を使う。行がまだ
+    なければ、info の確定した日時（isEarningsDateEstimate=False）が期間内かを見る。
+    推定の日付は、実際に発表したか分からないので使わない。
+    """
+    if hours <= 0:
+        return None
+    since = now - timedelta(hours=hours)
+    rows = [r for r in earnings.rows if since < r.when <= now]
+    if rows:
+        row = max(rows, key=lambda r: r.when)
+        when, estimate, reported = row.when, row.eps_estimate, row.reported_eps
+    elif (
+        earnings.next_start is not None
+        and earnings.is_estimate is False
+        and since < earnings.next_start <= now
+    ):
+        when, estimate, reported = earnings.next_start, None, None
+    else:
+        return None
+    return EarningsResult(
+        when=when.astimezone(JST),
+        name=f"{name}（{earnings.ticker}）",
+        importance=importance,
+        eps_estimate=estimate,
+        reported_eps=reported,
+    )
+
+
 def within_window(
     events: list[ScheduledEvent], now: datetime, total_days: int
 ) -> list[ScheduledEvent]:

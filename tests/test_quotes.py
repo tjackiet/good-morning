@@ -122,3 +122,46 @@ def test_sort_by_change_pct_puts_failures_last():
     results = [_quote("A", -1.0), QuoteFailure("F", "F", "x"), _quote("B", 2.0), _quote("C", 0.5)]
 
     assert [r.ticker for r in sort_by_change_pct(results)] == ["B", "C", "A", "F"]
+
+
+# --- 取得元が終値を空のまま返したとき（2026-11-18 に個別株・ETF で確認） ------------------
+
+
+def _series_with_empty_last(empty_day: date) -> DailySeries:
+    return DailySeries(
+        "NVDA",
+        "America/New_York",
+        (DailyBar(date(2026, 11, 13), 162.85), DailyBar(date(2026, 11, 16), 156.14)),
+        empty_close_dates=(empty_day,),
+    )
+
+
+def test_missing_close_is_flagged_when_that_day_should_be_settled():
+    """11/18 10:30 JST（= 11/17 20:30 ET）なら 11/17 の終値は確定しているはずなので、空なら印を付ける"""
+    q = make_quote(
+        _series_with_empty_last(date(2026, 11, 17)),
+        name="エヌビディア", basis="close", now=_jst(2026, 11, 18, 10, 30), close=CLOSE,
+    )  # fmt: skip
+
+    assert (q.last, q.last_date) == (156.14, date(2026, 11, 16))  # 前の営業日の終値のまま
+    assert q.missing_close == date(2026, 11, 17)
+    assert q.effective_date == date(2026, 11, 17)
+
+
+def test_empty_forming_bar_is_not_flagged():
+    """取引中や引け直後（確定前）の当日の行が空なのは普通なので、印を付けない"""
+    q = make_quote(
+        _series_with_empty_last(date(2026, 11, 17)),
+        name="x", basis="close", now=_jst(2026, 11, 17, 22, 50), close=CLOSE,
+    )  # fmt: skip
+
+    assert q.missing_close is None
+
+
+def test_live_basis_ignores_empty_closes():
+    q = make_quote(
+        _series_with_empty_last(date(2026, 11, 17)),
+        name="x", basis="live", now=_jst(2026, 11, 18, 10, 30), close=CLOSE,
+    )  # fmt: skip
+
+    assert q.missing_close is None

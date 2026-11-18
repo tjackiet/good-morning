@@ -1,8 +1,9 @@
 # CLAUDE.md
 
-暗号資産投資向けのモーニングレターを自動生成する CLI。毎朝 JST 7:00 以降に `good-morning run` を
-1回実行すると、マーケット数値・今後30日の予定・主要ニュースを集約した Markdown が
-`outputs/YYYY-MM-DD.md` に出力される。メイン銘柄は BTC。
+暗号資産投資向けのモーニングレターを自動生成する CLI。毎朝 `good-morning run` を1回実行すると
+（定時実行は JST 6:45、米国市場の引け後）、マーケット数値・今後30日の予定・主要ニュースを集約した
+Markdown が `outputs/YYYY-MM-DD.md` に出力される。あわせて、同じ内容のビジュアルレポート（HTML。
+claude.ai の非公開アーティファクトに載せる）と、Discord に添付する画像のカードも作る。メイン銘柄は BTC。
 
 - 元の指示書（全文）: [docs/ClaudeCode指示書_モーニングレター.md](docs/ClaudeCode指示書_モーニングレター.md)
 - ベース: 自作ツール aion（https://github.com/tjackiet/aion）。git 履歴は引き継がず、ファイルを出発点にした
@@ -35,7 +36,8 @@
 | 3 | 今後の予定（決算・FRED・events.yaml） | 済 |
 | 4 | ニュース（RSS とキーワードの差し替え、要約プロンプトの変更） | 済 |
 | 5 | Claude による「今朝のまとめ」「暗号資産への示唆」、全体の結合、Discord 通知 | 済 |
-| 6 | launchd で毎日 JST 7:15 に定時実行 | |
+| 5.5 | ビジュアルレポート（アーティファクト）と Discord の画像カード、終値の未反映への対応 | 済 |
+| 6 | Claude アプリの定時タスクで毎日 JST 6:45 に実行（自宅の iMac。launchd から変更） | |
 
 ## レポートの骨子
 
@@ -78,6 +80,10 @@
 - `^TNX` は % の値そのもの（例 5.121）で返る。前日比は ×100 で bp。前日比%は出さない（「—」）。
 - 祝日などで終値の日付が他の銘柄とずれた行には「（11/13 終値）」を添える。ヘッダーの基準日は、終値の銘柄で最も多い日付。
 - 1銘柄の失敗はその行だけ「取得失敗」。全銘柄が失敗したらセクションごと「取得失敗」。
+- **個別株・ETF は、NY の引け後しばらく最新日の行が「終値 NaN」で返る**（2026-11-18 の JST 10 時台に実データで確認。指数は出ていた）。そのまま捨てると前の日の値が黙って出るので、`DailySeries.empty_close_dates` に日付を残し、確定した日（`is_settled_day`）の終値が空なら `Quote.missing_close` を立てる。
+  - `markets.yaml` の `missing_close_retry`（既定 2回・20秒おき）で、その銘柄だけ取り直す（`markets/builders.py` の `fetch_quotes`）。
+  - それでも出なければ前の営業日の終値と前日比を出し、行に「（11/16 終値・11/17 は未反映）」と添える。表の全行がそうなら、行ごとではなく表の下に1行だけ注記する（`tables.py` の `uniform_stale` / `stale_note`）。Claude に渡すデータにも「未反映」と書く（`synthesis/facts.py`）。
+  - 60分足などで補うのは公式の終値ではないので採らない（大原則2）。6:45 の定時実行でどのくらい起きるかは未確認。
 
 ### 今後の予定（フェーズ3で実装）
 
@@ -87,6 +93,9 @@
 - **FRED の API キーを漏らさない**: httpx の例外メッセージは URL（＝キー）を含むので使わず、例外の型名を原因までたどって残す（例 `ConnectError ← SSLCertVerificationError`）。`raise ... from None` でトレースバックにも残さない。httpx のログは WARNING 以上にしてあるので、リクエストの URL もログに出ない。
 - **決算日**: yfinance の `info`（決算日に関わる項目だけ。価格には使わない）と `get_earnings_dates()` を使う。実データで確かめた `info` の意味: `isEarningsDateEstimate=False` かつ未来 → 確定、`True` → 推定、`False` かつ過去 → 前回の決算（次回は `get_earnings_dates()` の未発表の行から推定）。EPS 予想は `get_earnings_dates()` の日付が近い行から。`Ticker.calendar` は古い日付を返すことがあった（HOOD）ので使わない。related の関連企業は `shortName`（会社名）で表示する。
 - 決算日の取得は1銘柄2回の通信（info と get_earnings_dates）。見本のウォッチリスト（関連企業込み8銘柄）で約10秒。
+- **直近の決算**（2026-11-18 に追加）: 米国企業の多くは引け後すぐ（日本時間 6:00 ごろ）に決算を出すので、6:45 のレポートでは「今後の予定」から消えてしまう。そこで、過去24時間（`events.yaml` の `earnings.recent_hours`）に発表予定の時刻を過ぎた決算を、セクションの先頭に EPS の実績・予想・予想比で出す（`events.py` の `recent_earnings_result`）。数値は同じ `get_earnings_dates()` の行から取るので通信は増えない。予想比は `(実績 - 予想) / |予想|`。
+  - 発表後の `get_earnings_dates()` には実績が入る（NVDA: 予想 2.47 → 実績 2.68。2026-11-18 11:15 に確認、`tests/fixtures/yfinance/earnings_20261118_1115.json`）。発表直後に取得元へ入るまでの時間は未確認なので、まだなければ「未反映」と出す。推定の日付（`isEarningsDateEstimate=True`）は実際に発表したか分からないので使わない。
+  - 取れるのは EPS だけ（売上高はない）。Claude に渡すデータ・ビジュアルレポート・画像のカードにも載せる。
 
 ### 主要ニュース（フェーズ4で実装）
 
@@ -99,6 +108,10 @@
 - 2026-11-18 に実データで要約を確認。入力についての言及（「詳細は記載されていません」）と単位の換算（$2.35 billion → 23億5000万ドル）が出たため、プロンプトで禁止した（数値は記事の表記のまま）。
 - モデル `claude-sonnet-5` は有効な ID（前の世代。指示書の「aion と同じ」に従った）。同じ価格の後継 `claude-sonnet-5-5` もあるので、変えるかはユーザーの判断。
 - 全フィードが失敗したら、記事0件と区別してセクションを「取得失敗」にする（`fetch_all_feeds` が例外を投げる）。
+- **ウォッチリストの企業の記事**（2026-11-18 に追加）: `watchlist.yaml` の `stocks[].keywords` に書いた会社名（日本語・英語）を「ウォッチリストの企業」カテゴリのキーワードに足す（重みは `keywords.yaml` の `watchlist.weight`）。「Strategy」のような一般的な語は書かない。
+  - 会社名と決算の語（`watchlist.earnings_words`）が両方出る記事を「決算の記事」とし、`earnings_bonus` を足したうえで、5本のうち `earnings_slots`（既定1）本を優先して回す（`ranking.py` の `select_for_summary` の `priority`）。加点だけだと BTC・FRB の記事（20点前後）に負けた（2026-11-18 の NVIDIA の決算で、決算の記事は 18.6点）。
+  - 決算の語だけでは記事を通さない（ウォッチリスト外の企業の決算で枠が埋まらないように）。`collect-cmd --explain` では「（決算の記事）」と表示する。
+  - キーワードは読み込み時に watchlist.yaml（なければ見本）から作る。テストは見本のウォッチリストが前提（手元に watchlist.yaml があると、記事選定のベースラインなどの数値が変わる）。
 
 ### 今朝のまとめ・暗号資産への示唆（フェーズ5で実装）
 
@@ -112,14 +125,27 @@
 ### 通知（フェーズ5で実装）
 
 - `good-morning run --notify` で Discord に送る（`notify/`）。`--notify-preview` は文面の表示だけ、`--force-notify` は同じ日の再送。同じ日は1回だけ（`outputs/.notified/YYYY-MM-DD.discord` に記録）。
-- 文面: 判定・3行の要約・BTC の価格と日足の判定・取得失敗のセクション・リンク（Notion に書き出せたらそのページ、なければ保存先のパス）。
+- `good-morning notify [日付] --link URL` は、保存済みの JSON とカードから後で送る（定時タスクでアーティファクトを公開してから送るため）。`--preview`・`--force` は run と同じ意味。
+- 文面は保存した JSON（ビューモデル）から作る。画像のカードを添付するときは、題名・判定・取得失敗のセクション・リンクだけ（通知のプレビューで判定が見えるように）。添付しないときは、判定・3行の要約・BTC の価格と日足の判定も載せる。画像は multipart（`payload_json` と `files[0]`）で送る。
+- リンクの優先順: `run` は Notion に書き出せたらそのページ → `.env` の `REPORT_URL`（アーティファクト）→ 保存先のパス。`notify` は `--link` → `REPORT_URL` → 保存先のパス。
 - 送り方は「未決事項」の Discord の方針どおり（User-Agent、`allowed_mentions: {"parse": []}`、`?wait=true`、429 は `retry_after` 秒待って1回だけ再送、理由に URL を入れない、例外を投げない）。flags（4 = プレビューなし、4096 = 無音）は Discord の公式ドキュメントで確認済み（2026-11-18）。設定は `config/notify.yaml`。
 - Notion: `run --publish` で書き出し、応答からページの URL を取り出して通知のリンクにする（`publisher/notion_mcp.py` の `extract_page_url`）。応答は JSON（`{"pages": [{"id", "url", "properties"}]}`）で、URL は `https://app.notion.com/p/<id>?pvs=204` の形（2026-11-18 に実際に書き出して確認）。許可は aion のときの `~/.mcp-auth` がそのまま使えた（ブラウザは開かなかった）。
+
+### ビジュアルレポートと画像のカード（フェーズ5.5で実装）
+
+- 朝に文字だけでは読む気にならない、というユーザーの要望で追加。`run` のたびに次を `outputs/` に保存する（どれかが失敗しても Markdown は保存済みなので止めない）。
+  - `YYYY-MM-DD.json`: ビューモデル（`visual/viewmodel.py` の `build_view`）。レポートの表と同じ表記の文字列だけを持ち、HTML とカードはここから描く。新しい計算はしない（大原則1）。古い形の JSON は `render.py` の `upgrade_view` で補う。
+  - `YYYY-MM-DD.html`: 単体で開ける HTML。`YYYY-MM-DD-artifact.html`: アーティファクト用（claude.ai が doctype・html・head・body を付けるので書かない。`render_html(view, standalone=False)`）。
+  - `YYYY-MM-DD-card.png`: Discord に添付する画像のカード（幅 420px・3倍・ダーク固定）。Playwright の Chromium で撮る（`visual/card.py`）。入っていない・起動できないときは画像なしで続ける。
+- テンプレートは Jinja2（`visual/templates/`、自動エスケープ）。リンクは http(s) だけ（`safe_url`）。グラフ（RSI の推移・騰落率の横棒）は外部ライブラリなしの SVG と CSS。`good-morning render [日付]` で JSON から HTML を描き直せる。
+- **色**: 上がり＝ティールの緑 `#179889`、下がり＝赤 `#cb5b51`。ユーザーのローソク足の色 `#429488` を基準に、鮮やかさだけを上げた（そのままでは彩度が足りず、元の赤 `#e66767` はダークで色覚の違いの見分けが足りなかった）。dataviz の検証スクリプトでライト・ダークとも合格（色覚の違いでの差 ΔE 9.0）。文字は同じ色合いの濃い版／明るい版（コントラスト 4.5:1 以上）。色だけに頼らず、必ず ▲▼ と +/− を添える。RSI の線は上下の意味を持たないので別の青。
+- **アーティファクトは非公開**（ユーザーの希望。一般公開はしない）。本人が claude.ai にサインインしているときだけ開ける（2026-11-18 に未ログインのブラウザで「サインインしてください」になることを確認）。毎朝同じ URL に上書きし、URL は `.env` の `REPORT_URL` に入れて通知のリンクにする。別の会話（定時タスク）から上書きするときは、Artifact ツールでその URL を一度 read してから `url` を付けて publish する。
+- **画像のカードは Discord のチャンネルにいる人なら誰でも見られる**（リンク先のアーティファクトは本人だけ）。添付をやめるなら `notify.yaml` の `attach_card: false`（文章に3行の要約と BTC を載せる）。
 
 ### ネットワーク（フェーズ5で判明）
 
 - **会社のネットワークでは Fortinet の機器が一部の HTTPS を検査し、社内の CA で証明書を署名し直す**（2026-11-18 に CoinPost・The Block・FRB・api.anthropic.com で確認）。httpx が標準で使う certifi には社内の CA がないため `CERTIFICATE_VERIFY_FAILED` になる。検証は切らず、OS の証明書ストアで検証する（`net.py` の `ssl_context()`、truststore）。RSS・FRED・Discord の通信はこれを使う。anthropic SDK（httpx2）は最初から OS の証明書ストアを使っている。
-- `npx`（bitbank-lab-mcp・Notion MCP）は fnm でインストールした Node を使っている（PATH はシェルごとの一時的な場所）。launchd から動かすときは PATH に注意（フェーズ6）。
+- `npx`（bitbank-lab-mcp・Notion MCP）は fnm でインストールした Node を使っている（PATH はシェルごとの一時的な場所）。定時タスクや launchd から動かすときは PATH に注意（フェーズ6）。
 - Node（mcp-remote）も標準では独自の証明書の束を使うため、会社のネットワークでは mcp.notion.com で `unable to verify the first certificate` になった。npx で起動する MCP サーバーには `NODE_OPTIONS=--use-system-ca`（Node 22.15 / 23.8 以降）を渡している（`net.py` の `NODE_SYSTEM_CA_ENV`）。
 
 ### bitbank-lab-mcp の注意（検証で判明済み）
@@ -146,14 +172,14 @@
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
-| `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
-| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻 | 済 |
+| `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related`・ニュースで拾う会社名 `keywords` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
+| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻、終値が未反映のときの取り直し | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
-| `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度、表示する期間 | 済 |
+| `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度と直近の決算を出す期間、表示する期間 | 済 |
 | `feeds.yaml` | 市場ニュースの RSS（暗号資産・マクロ・公的機関）、カテゴリごとの要約枠、フィードごとの `keyword_filter` / `ignore_keywords` | 済 |
-| `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`） | 済 |
+| `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`）、ウォッチリストの企業の重みと決算の記事の扱い（`watchlist`） | 済 |
 | `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト、今朝のまとめ（synthesis）のプロンプト | 済 |
-| `notify.yaml` | Discord 通知の設定（プレビューなし・無音・429 の再送） | 済 |
+| `notify.yaml` | Discord 通知の設定（画像のカードの添付・プレビューなし・無音・429 の再送） | 済 |
 
 - 暗号資産のペアは bitbank の取扱銘柄と照合し、存在しないペアは警告してスキップする（フェーズ2）。
 - 上限を超えたら先頭から順に採用する（実装済み）。
@@ -163,7 +189,8 @@
 - `ANTHROPIC_API_KEY`: 要約・まとめ用
 - `FRED_API_KEY`: 経済指標の発表予定日
 - `NOTION_PAGE_ID`（任意）: Notion への書き出し先
-- `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（`run --notify`）
+- `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（`run --notify` / `notify`）
+- `REPORT_URL`（任意）: 毎朝上書きするアーティファクトの URL。通知のリンクになる（秘密ではないが、本人しか開けない）
 
 ## 未決事項（初期値で進め、変えやすくしておく）
 
@@ -176,7 +203,7 @@
     - URL は環境変数 `DISCORD_WEBHOOK_URL` からだけ読む。未設定なら「送らない」とログに残すだけ。ログやエラー理由に URL を入れない。
     - 送信は失敗しても例外を投げず、理由を返して記録する（HTTP は状態コード、それ以外は例外の型名と、URL を含まない原因の種類＝証明書・名前解決など）。すべての例外を捕まえる。タイムアウト10秒。レポートの保存が済んでから送る。
     - 1日1回なので、`429` のときは `retry_after` 秒待って1回だけ再送してよい。二重投稿しないよう、その日の分を送ったことをファイルに記録する。
-    - launchd はシェルの環境変数を引き継がないので、plist の `EnvironmentVariables` に入れる（plist はリポジトリに入れない）。Mac がスリープ中は動かないので、フェーズ6で `pmset` による起動予約などを検討する。
+    - launchd はシェルの環境変数を引き継がないので、plist の `EnvironmentVariables` に入れる（plist はリポジトリに入れない）。Mac がスリープ中は動かないので、フェーズ6で `pmset` による起動予約などを検討する。※ フェーズ6は launchd ではなく Claude アプリの定時タスクにした（自宅の iMac、6:45）。`.env` はプログラムが自分で読むので、環境変数の受け渡しは不要。
     - URL が漏れたら、Webhook を作り直して古いものを削除する。
 - **ウォッチリストの銘柄**: 見本は仮のもの。
 - **任意項目**（VIX、ドルインデックス、株価指数先物）: 初期値はオン。
@@ -185,7 +212,7 @@
 
 ```
 src/good_morning/
-  main.py            CLI（typer）。run / collect-cmd / publish
+  main.py            CLI（typer）。run / notify / render / collect-cmd / publish
   sections.py        セクションの並びと、失敗を閉じ込める build_section
   context.py         builder が受け取る RunContext（ctx.data に計算済みの数値を置く）と戻り値
   reporter/markdown.py  ヘッダー・各セクション・フッターの描画と保存
@@ -197,7 +224,8 @@ src/good_morning/
   schedule/          events.yaml の読み込み、予定の組み立て（JST 変換・期間・並べ替え）、今後の予定のセクション
   news/builder.py    主要ニュースのセクション（収集→選定→要約→表示）
   synthesis/         Claude に渡すデータ（facts）、数値の照合、まとめの呼び出し、今朝のまとめ・暗号資産への示唆のセクション
-  notify/            Discord 通知（文面と送信）
+  notify/            Discord 通知（文面と送信。画像のカードの添付）
+  visual/            ビジュアルレポート（ビューモデル・SVG の部品・Jinja2 のテンプレート・画像のカード）
   net.py / errors.py  OS の証明書ストアで検証する SSLContext、例外の原因の型名
   watchlist.py       watchlist.yaml の読み込み（example へのフォールバック、上限の切り詰め）
   paths.py / timeutil.py / logging_setup.py   パス・JST・ログ（logs/YYYY-MM-DD.log）
@@ -210,13 +238,17 @@ src/good_morning/
 ## 開発コマンド
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev,card]"
+.venv/bin/python -m playwright install chromium   # 画像のカード用（約100MB。なくてもカードなしで動く）
 .venv/bin/pytest -q
 .venv/bin/ruff check src tests scripts
-.venv/bin/good-morning run                 # outputs/YYYY-MM-DD.md を生成
+.venv/bin/good-morning run                 # outputs/ に md・json・html・アーティファクト用 html・カードの png を生成
+.venv/bin/good-morning render             # 保存済みの JSON から HTML を描き直す（テンプレートを直したとき）
+.venv/bin/good-morning notify --preview   # 通知の文面を表示するだけ（送らない）
 .venv/bin/good-morning collect-cmd --explain   # RSS の通過/除外の理由を確認
 ```
 
+- ビジュアルレポートの見た目は `.claude/launch.json` の `report-preview`（outputs/ を 127.0.0.1:8765 で配る。gitignore 済み）でブラウザに出して確かめる。
 - テストは aion の流儀に合わせる: 実データのスナップショットを `tests/fixtures/` に置き、`monkeypatch` で取得関数を差し替える。共通の部品は `tests/conftest.py`。
 - yfinance の固定データは `scripts/capture_yfinance_fixture.py` で `tests/fixtures/yfinance/` に保存する。テストでは `fake_yfinance` フィクスチャで差し替える。`conftest.py` の autouse フィクスチャが、テストから yfinance・bitbank-lab-mcp に触れたら失敗させる。
 - bitbank の固定データは `scripts/capture_bitbank_fixture.py` で `tests/fixtures/bitbank/` に保存する（使う部分だけに切り詰める。1本約1MB → 全体で約170KB）。テストでは `fake_bitbank` フィクスチャで差し替える。

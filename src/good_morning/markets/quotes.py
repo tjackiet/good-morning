@@ -19,6 +19,14 @@ class Quote:
     prev: float
     last_date: date
     prev_date: date
+    # 確定しているはずの日（last_date より新しい）の終値が取得元で空だった日付。
+    # このとき last / prev は1日前の終値（表では「11/16 終値・11/17 は未反映」と出す）
+    missing_close: date | None = None
+
+    @property
+    def effective_date(self) -> date:
+        """本来の基準日（終値が未反映なら、その日）"""
+        return self.missing_close or self.last_date
 
     @property
     def change(self) -> float:
@@ -44,6 +52,12 @@ class QuoteFailure:
 
 
 QuoteResult = Quote | QuoteFailure
+
+
+def is_settled_day(day: date, now: datetime, close: MarketClose) -> bool:
+    """その日の NY 終値が確定している時刻を過ぎているか"""
+    now_ny = now.astimezone(close.tz)
+    return day < now_ny.date() or (day == now_ny.date() and now_ny.time() >= close.settled_time)
 
 
 def complete_bars(series: DailySeries, now: datetime, close: MarketClose) -> list[DailyBar]:
@@ -87,6 +101,11 @@ def make_quote(
     if prev.close == 0:
         raise MarketDataError(f"{series.ticker}: 前日の終値が0のため前日比を計算できません")
 
+    missing = None
+    if basis == "close":
+        pending = [d for d in series.empty_close_dates if d > last.date and is_settled_day(d, now, close)]
+        missing = max(pending) if pending else None
+
     return Quote(
         ticker=series.ticker,
         name=name,
@@ -97,12 +116,14 @@ def make_quote(
         prev=prev.close,
         last_date=last.date,
         prev_date=prev.date,
+        missing_close=missing,
     )
 
 
 def common_close_date(results: list[QuoteResult]) -> date | None:
     """basis: close の銘柄で最も多い「最新の終値の日付」（ヘッダーの基準日に使う）"""
-    dates = [r.last_date for r in results if isinstance(r, Quote) and r.basis == "close"]
+    # 終値が未反映の銘柄は、本来の基準日（未反映の日）で数える
+    dates = [r.effective_date for r in results if isinstance(r, Quote) and r.basis == "close"]
     if not dates:
         return None
     counts = Counter(dates)

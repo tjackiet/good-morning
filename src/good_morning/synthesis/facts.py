@@ -21,6 +21,8 @@ def _quote_line(q, label: str | None = None) -> str:
     if not isinstance(q, Quote):
         return f"- {name}: 取得失敗"
     basis = "取得時点" if q.basis == "live" else f"{q.last_date.month}/{q.last_date.day} 終値"
+    if q.missing_close is not None:
+        basis += f"。{q.missing_close.month}/{q.missing_close.day} の終値は取得元に未反映"
     pct = format_change_pct(q)
     pct_text = "" if pct == "—" else f"、前日比% {pct}"
     return f"- {name}（{basis}）: {format_value(q)}、前日比 {format_change(q)}{pct_text}"
@@ -93,7 +95,25 @@ def _calendar(ctx: RunContext) -> list[str]:
     data = ctx.data.get("calendar")
     if not data:
         return []
-    lines = ["## 今後7日の予定（日本時間）"]
+    lines = []
+    recent = data.get("recent") or []
+    if recent:
+        from good_morning.schedule.builder import eps_label, surprise_label
+
+        lines.append(f"## 直近の決算（過去{data.get('recent_hours', 24)}時間。EPS は1株利益）")
+        for r in recent:
+            when = f"{format_month_day(r.when.date())} {r.when:%H:%M}"
+            if r.reported_eps is None:
+                estimate = f"、EPS 予想 {eps_label(r.eps_estimate)}" if r.eps_estimate is not None else ""
+                lines.append(f"- {when} {r.name}: EPS の実績は取得元に未反映{estimate}")
+            else:
+                parts = [f"EPS 実績 {eps_label(r.reported_eps)}"]
+                if r.eps_estimate is not None:
+                    parts.append(f"予想 {eps_label(r.eps_estimate)}")
+                if surprise_label(r):
+                    parts.append(f"予想比 {surprise_label(r)}")
+                lines.append(f"- {when} {r.name}: {'・'.join(parts)}")
+    lines.append("## 今後7日の予定（日本時間）")
     for e in data["detail"]:
         when = format_month_day(e.day) + (f" {e.when:%H:%M}" if e.when else "")
         extra = f"、予想 {e.forecast}" if e.forecast else ""

@@ -13,13 +13,19 @@ crypto:
 
 # 最大10銘柄、米国株のみ。超えた分は先頭から順に採用し、残りは無視する。
 # related: 決算予定の対象に含める関連企業
+# keywords: 主要ニュースで拾う会社名（日本語と英語。英語のフィードがあるため）。
+#   会社名と決算の語（keywords.yaml の watchlist.earnings_words）が両方出る記事は優先する。
+#   「Strategy」のような一般的な語は関係ない記事まで拾うので書かない。
 stocks:
   - ticker: NVDA
     name: エヌビディア
     related: [TSM, AMD, AVGO, SMCI]
+    keywords: [エヌビディア, Nvidia]
   - ticker: COIN
     name: コインベース
     related: [HOOD, MSTR]
+    keywords: [コインベース, Coinbase]
   - ticker: MSTR
     name: ストラテジー
     related: []
+    keywords: [ストラテジー社, MicroStrategy, Saylor]

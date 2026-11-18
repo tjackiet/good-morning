@@ -10,7 +10,7 @@ from good_morning.selector.keywords import KEYWORDS
 JST = ZoneInfo("Asia/Tokyo")
 
 
-def _compile_keyword_pattern(keyword: str) -> re.Pattern[str]:
+def compile_keyword_pattern(keyword: str) -> re.Pattern[str]:
     """キーワードの前後境界を考慮した正規表現にコンパイル
 
     素朴な部分一致では 'AI' が 'TRAINING' の中の文字列として誤爆する。
@@ -35,7 +35,7 @@ def _compile_keyword_pattern(keyword: str) -> re.Pattern[str]:
     return re.compile(prefix + re.escape(keyword) + suffix, re.IGNORECASE)
 
 
-_KEYWORD_PATTERNS = [(kw, _compile_keyword_pattern(kw)) for kw in KEYWORDS]
+_KEYWORD_PATTERNS = [(kw, compile_keyword_pattern(kw)) for kw in KEYWORDS]
 
 
 def count_undated_by_source(articles: list[Article]) -> dict[str, int]:

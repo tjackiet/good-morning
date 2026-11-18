@@ -6,14 +6,17 @@
 
 import logging
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
 from good_morning.collector import fred, market_data
 from good_morning.context import RunContext, SectionContent
 from good_morning.schedule.config import EventsConfig, load_events_config
 from good_morning.schedule.events import (
+    EarningsResult,
     ScheduledEvent,
     fred_events,
     next_earnings_event,
+    recent_earnings_result,
     split_by_detail,
     static_events,
     within_window,
@@ -49,11 +52,16 @@ def _earnings_targets(
     return targets
 
 
-def collect_events(
-    ctx: RunContext, config: EventsConfig
-) -> tuple[list[ScheduledEvent], list[str], list[str]]:
-    """(予定, 使えた取得元, 取得できなかったものの説明) を返す"""
+class Collected(NamedTuple):
+    events: list[ScheduledEvent]  # 今後の予定（期間で絞る前）
+    results: list[EarningsResult]  # 直近の決算（発表予定の時刻を過ぎたもの）
+    sources: list[str]  # 使えた取得元
+    problems: list[str]  # 取得できなかったものの説明
+
+
+def collect_events(ctx: RunContext, config: EventsConfig) -> Collected:
     events: list[ScheduledEvent] = []
+    results: list[EarningsResult] = []
     sources: list[str] = []
     problems: list[str] = []
 
@@ -80,6 +88,15 @@ def collect_events(
             event = next_earnings_event(info, name=display, importance=importance, now=ctx.now)
             if event is not None:
                 events.append(event)
+            result = recent_earnings_result(
+                info,
+                name=display,
+                importance=importance,
+                now=ctx.now,
+                hours=config.earnings.recent_hours,
+            )
+            if result is not None:
+                results.append(result)
         except Exception as e:  # noqa: BLE001 - 1銘柄の失敗で止めない
             logger.warning("今後の予定（決算 %s）: 取得失敗 - %s", ticker, e)
             failed_tickers.append(ticker)
@@ -88,7 +105,8 @@ def collect_events(
     if failed_tickers:
         problems.append(f"決算日: {', '.join(failed_tickers)}")
 
-    return events, sources, problems
+    results.sort(key=lambda r: (r.when, r.name))
+    return Collected(events, results, sources, problems)
 
 
 def _when_label(e: ScheduledEvent) -> str:
@@ -117,15 +135,62 @@ def render_summary_list(events: list[ScheduledEvent]) -> str:
     return "\n".join(f"- {_when_label(e)} 【{e.importance}】{_title_label(e)}" for e in events)
 
 
+def eps_label(value: float | None) -> str | None:
+    return None if value is None else f"{value:.2f}ドル"
+
+
+def surprise_label(result: EarningsResult) -> str | None:
+    pct = result.surprise_pct
+    return None if pct is None else f"{pct:+.1f}%"
+
+
+def render_results_table(results: list[EarningsResult]) -> str:
+    lines = [
+        "| 発表予定（日本時間） | 企業 | EPS 実績 | EPS 予想 | 予想比 |",
+        "|---|---|---:|---:|---:|",
+    ]
+    for r in results:
+        lines.append(
+            f"| {format_month_day(r.when.date())} {r.when:%H:%M} | {r.name} "
+            f"| {eps_label(r.reported_eps) or '未反映'} | {eps_label(r.eps_estimate) or '—'} "
+            f"| {surprise_label(r) or '—'} |"
+        )
+    return "\n".join(lines)
+
+
+def results_note(results: list[EarningsResult]) -> str:
+    note = "EPS（1株利益）は Yahoo Finance の値（会社の発表とは調整のしかたが違うことがある）。時刻は取得元の目安。"
+    if any(r.reported_eps is None for r in results):
+        note += "「未反映」は、発表予定の時刻を過ぎたが取得元に実績がまだないもの。"
+    return note
+
+
 def build_calendar(ctx: RunContext) -> SectionContent:
     config = load_events_config()
-    events, sources, problems = collect_events(ctx, config)
+    events, results, sources, problems = collect_events(ctx, config)
     window = within_window(events, ctx.now, config.horizon.total_days)
     detail, later = split_by_detail(window, ctx.now, config.horizon.detail_days)
-    ctx.data["calendar"] = {"detail": detail, "later": later}
+    ctx.data["calendar"] = {
+        "detail": detail,
+        "later": later,
+        "recent": results,
+        "recent_hours": config.earnings.recent_hours,
+    }
 
     days = config.horizon
-    body = [f"**{days.detail_days}日以内**", ""]
+    body: list[str] = []
+    if results:
+        body.extend(
+            [
+                f"**直近の決算（過去{config.earnings.recent_hours}時間）**",
+                "",
+                render_results_table(results),
+                "",
+                results_note(results),
+                "",
+            ]
+        )
+    body.extend([f"**{days.detail_days}日以内**", ""])
     body.append(render_detail_table(detail) if detail else "予定はありません。")
     body.extend(["", f"**{days.detail_days + 1}〜{days.total_days}日**", ""])
     body.append(render_summary_list(later) if later else "予定はありません。")

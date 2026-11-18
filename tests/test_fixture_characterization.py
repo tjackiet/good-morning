@@ -24,9 +24,10 @@ BASELINE = [
     ("CoinDesk", "coindesk.xml", 25, 25, 25),
     ("CoinPost", "coinpost.xml", 16, 16, 16),
     ("The Block", "theblock.xml", 20, 20, 20),
-    # Bloomberg は一般の市場ニュースなので、金融政策・暗号資産などの語で絞り込む
-    ("Bloomberg（Markets）", "bloomberg_markets.xml", 20, 20, 4),
-    ("Bloomberg（Economics）", "bloomberg_economics.xml", 20, 20, 9),
+    # Bloomberg は一般の市場ニュースなので、金融政策・暗号資産などの語で絞り込む。
+    # ウォッチリスト（見本）の会社名で Nvidia の記事も通る（Markets +2・Economics +1。会社名がなければ 4・9）
+    ("Bloomberg（Markets）", "bloomberg_markets.xml", 20, 20, 6),
+    ("Bloomberg（Economics）", "bloomberg_economics.xml", 20, 20, 10),
     ("FRB（金融政策）", "frb_monetary.xml", 15, 15, 15),
     # ignore_keywords: [日銀] で、統計の公表などが「日銀」の語だけで通るのを防いでいる（無視しないと14件）
     ("日本銀行（新着情報）", "boj_whatsnew.xml", 70, 70, 10),
