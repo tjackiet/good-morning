@@ -48,6 +48,11 @@ markets:
   - {ticker: "NQ=F", name: ナスダック100先物, basis: live, group: index_futures}
   - {ticker: "YM=F", name: NYダウ先物, basis: live, decimals: 0, group: index_futures}
 
+# ビジュアルレポート（と Discord の画像のカード）で、BTC の下に大きく出す項目（銘柄コード）。
+# 1段に3つずつ、この順に並ぶ。ここにない項目は「その他の指標」の表に出す（同じ項目を2回出さない）。
+# Markdown のレポートの表は、上の markets の順にすべてを出す（この設定は関係しない）。
+tiles: ["^DJI", "^GSPC", "^IXIC", "JPY=X", "^TNX", "CL=F"]
+
 # SPDR セクターETF（騰落率順に並べて表示する）
 sectors:
   - {ticker: XLK, name: 情報技術}

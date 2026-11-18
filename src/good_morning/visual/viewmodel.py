@@ -30,8 +30,6 @@ from good_morning.timeutil import format_jst, format_month_day
 
 VIEW_VERSION = 1
 SNIPPET_CHARS = 140
-# マーケット一覧のうち、上のタイルに大きく出す項目（残りは表に出す）
-TILE_TICKERS = ("^GSPC", "^IXIC", "JPY=X", "^TNX", "^VIX", "GC=F")
 
 
 def split_label(label: str) -> tuple[str, str]:
@@ -76,9 +74,9 @@ def _markets(ctx: RunContext) -> dict | None:
     views = [_quote_view(q, base, skip) for q in rows]
     hero = views[0] if views and views[0]["ticker"].endswith("_jpy") else None
     rest = views[1:] if hero else views
-    tiles = [v for v in rest if v["ticker"] in TILE_TICKERS]
-    tiles.sort(key=lambda v: TILE_TICKERS.index(v["ticker"]))
-    return {"hero": hero, "tiles": tiles, "rows": rest, "note": stale_note(rows)}
+    # rows はすべての項目（設定の順）。上のタイルと表への振り分けは、描くときに markets.yaml の
+    # tiles で決める（render.py の arrange_markets。並びを変えても保存済みの日を描き直せるように）
+    return {"hero": hero, "rows": rest, "note": stale_note(rows)}
 
 
 def _sectors(ctx: RunContext) -> list[dict] | None:

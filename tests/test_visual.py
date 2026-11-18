@@ -1,6 +1,7 @@
 """ビジュアルレポート（ビューモデル・グラフの部品・HTML）のテスト（ネットワークなし）"""
 
 import json
+import re
 
 import pytest
 from conftest import BITBANK_FIXTURE, YF_PRE_OPEN_CAPTURED_AT, YF_PRE_OPEN_FIXTURE
@@ -12,7 +13,14 @@ from good_morning.paths import CONFIG_DIR
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, ReportMeta, Section
 from good_morning.synthesis.claude import Synthesis
 from good_morning.visual.charts import add_bar_widths, rsi_domain, rsi_svg
-from good_morning.visual.render import load_view, render_html, safe_url, save_view, upgrade_view
+from good_morning.visual.render import (
+    arrange_markets,
+    load_view,
+    render_html,
+    safe_url,
+    save_view,
+    upgrade_view,
+)
 from good_morning.visual.viewmodel import build_view, split_label
 from good_morning.watchlist import load_watchlist
 
@@ -67,10 +75,11 @@ def test_view_uses_report_notation_and_is_json_serializable(view):
     assert view["summary"]["stance"] == "リスクオフ"
     hero = view["markets"]["hero"]
     assert (hero["name"], hero["value"]) == ("BTC/JPY", "10,344,652")  # bitbank の実データ
-    tiles = {t["name"]: t for t in view["markets"]["tiles"]}
-    assert tiles["S&P500"]["value"] == "7,416.59" and tiles["S&P500"]["pct_label"] == "-1.92%"
-    assert tiles["米10年債利回り"]["pct"] is None  # 利回りは前日比%を出さない
-    assert tiles["米10年債利回り"]["change"] == "-3.3bp"
+    rows = {r["name"]: r for r in view["markets"]["rows"]}  # すべての項目（タイルへの振り分けは描くとき）
+    assert "tiles" not in view["markets"]
+    assert rows["S&P500"]["value"] == "7,416.59" and rows["S&P500"]["pct_label"] == "-1.92%"
+    assert rows["米10年債利回り"]["pct"] is None  # 利回りは前日比%を出さない
+    assert rows["米10年債利回り"]["change"] == "-3.3bp"
     daily = view["btc"]["timeframes"][0]
     assert (daily["label"], daily["verdict"], daily["total"]) == ("日足", "弱気", -4)
     assert daily["signals"][3]["main"] == "25.6" and daily["signals"][3]["detail"] == "売られすぎ"
@@ -116,6 +125,46 @@ def test_render_html_contains_sections(view):
     assert "日足 RSI(14) の推移" in html and '<svg class="rsi"' in html
     assert "取得失敗" in html  # ニュースのセクション
     assert "prefers-color-scheme: dark" in html  # ダークモードの色
+
+
+def test_markets_are_split_into_tiles_and_others_by_config(view):
+    """タイルは markets.yaml の tiles の順、表はそれ以外だけ（同じ項目を2回出さない）"""
+    markets = arrange_markets(view)["markets"]
+
+    assert [t["ticker"] for t in markets["tiles"]] == ["^DJI", "^GSPC", "^IXIC", "JPY=X", "^TNX", "CL=F"]
+    assert [r["ticker"] for r in markets["others"]] == ["GC=F", "^VIX", "DX-Y.NYB", "ES=F", "NQ=F", "YM=F"]
+    assert "tiles" not in view["markets"]  # 渡した view は書き換えない
+
+
+def test_arrange_markets_skips_missing_tickers_and_keeps_all_others(view):
+    rows = [r for r in view["markets"]["rows"] if r["ticker"] != "^IXIC"]  # 保存したデータにない項目
+    view = {**view, "markets": {**view["markets"], "rows": rows}}
+
+    markets = arrange_markets(view, tiles=["^IXIC", "^VIX", "^DJI"])["markets"]
+
+    assert [t["ticker"] for t in markets["tiles"]] == ["^VIX", "^DJI"]
+    assert len(markets["others"]) == len(rows) - 2
+    assert arrange_markets({**view, "markets": None})["markets"] is None
+
+
+def test_render_html_shows_each_market_item_once(view):
+    html = render_html(view)
+    tiles, table = html.split('<div class="tiles">')[1].split("<summary>その他の指標</summary>")
+
+    assert tiles.index("NYダウ") < tiles.index("S&amp;P500") < tiles.index("ナスダック総合")
+    assert tiles.index("ナスダック総合") < tiles.index("ドル円") < tiles.index("米10年債利回り")
+    assert tiles.index("米10年債利回り") < tiles.index("WTI原油先物")
+    names = re.findall(r"<tr>\s*<td>([^<]+?)(?: ※)?(?:<|$)", table.split("</table>")[0])
+    assert names == ["金先物", "VIX", "ドルインデックス", "S&amp;P500先物", "ナスダック100先物", "NYダウ先物"]
+
+
+def test_old_view_with_all_rows_is_rearranged(view):
+    """以前の形式（タイルを JSON に持っていた）でも、描くときに今の設定で振り分ける"""
+    old = {**view, "markets": {**view["markets"], "tiles": view["markets"]["rows"][:1]}}
+
+    tiles = arrange_markets(old)["markets"]["tiles"]
+
+    assert [t["ticker"] for t in tiles][:3] == ["^DJI", "^GSPC", "^IXIC"]
 
 
 def test_untrusted_text_is_escaped_and_bad_links_dropped(view):

@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 
 from good_morning.paths import OUTPUTS_DIR
-from good_morning.visual.render import _environment, upgrade_view
+from good_morning.visual.render import _environment, prepare_view
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def card_path(day: str, outputs_dir: Path | None = None) -> Path:
 
 
 def render_card_html(view: dict) -> str:
-    return _environment().get_template("card.html.j2").render(v=upgrade_view(view))
+    return _environment().get_template("card.html.j2").render(v=prepare_view(view))
 
 
 def render_card_png(view: dict, out_path: Path) -> Path | None:

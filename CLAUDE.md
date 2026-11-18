@@ -138,6 +138,7 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
   - `YYYY-MM-DD.json`: ビューモデル（`visual/viewmodel.py` の `build_view`）。レポートの表と同じ表記の文字列だけを持ち、HTML とカードはここから描く。新しい計算はしない（大原則1）。古い形の JSON は `render.py` の `upgrade_view` で補う。
   - `YYYY-MM-DD.html`: 単体で開ける HTML。`YYYY-MM-DD-artifact.html`: アーティファクト用（claude.ai が doctype・html・head・body を付けるので書かない。`render_html(view, standalone=False)`）。
   - `YYYY-MM-DD-card.png`: Discord に添付する画像のカード（幅 420px・3倍・ダーク固定）。`notify.yaml` の `attach_card: true` のときだけ作る（既定は作らない）。Playwright の Chromium で撮る（`visual/card.py`）。入っていない・起動できないときは画像なしで続ける。
+- **マーケットの上の段（タイル）**は `markets.yaml` の `tiles` の順に3つずつ並ぶ（NY3指数 → ドル円・米10年債・原油。2026-11-19 にユーザーと決めた）。残りは「その他の指標」の表に出し、同じ項目を2回出さない。スマホでもまとまりが崩れないよう列数は3のまま。振り分けは描くとき（`render.py` の `arrange_markets`）に行うので、並びを変えても `good-morning render` で保存済みの日を描き直せる。Markdown の表は `markets` の順にすべてを出す（`tiles` は関係しない）。
 - テンプレートは Jinja2（`visual/templates/`、自動エスケープ）。リンクは http(s) だけ（`safe_url`）。グラフ（RSI の推移・騰落率の横棒）は外部ライブラリなしの SVG と CSS。`good-morning render [日付]` で JSON から HTML を描き直せる。
 - **色**: 上がり＝ティールの緑 `#179889`、下がり＝赤 `#cb5b51`。ユーザーのローソク足の色 `#429488` を基準に、鮮やかさだけを上げた（そのままでは彩度が足りず、元の赤 `#e66767` はダークで色覚の違いの見分けが足りなかった）。dataviz の検証スクリプトでライト・ダークとも合格（色覚の違いでの差 ΔE 9.0）。文字は同じ色合いの濃い版／明るい版（コントラスト 4.5:1 以上）。色だけに頼らず、必ず ▲▼ と +/− を添える。RSI の線は上下の意味を持たないので別の青。
 - **アーティファクトは非公開**（ユーザーの希望。一般公開はしない）。本人が claude.ai にサインインしているときだけ開ける（2026-11-18 に未ログインのブラウザで「サインインしてください」になることを確認）。毎朝同じ URL に上書きし、URL は `.env` の `REPORT_URL` に入れて通知のリンクにする。別の会話（定時タスク）から上書きするときは、Artifact ツールでその URL を一度 read してから `url` を付けて publish する。
@@ -174,7 +175,7 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
 | ファイル | 内容 | 状態 |
 |---|---|---|
 | `watchlist.example.yaml` | 暗号資産（main + watch 最大5）と米国株（最大10、`related`・ニュースで拾う会社名 `keywords` 付き）。手元で `watchlist.yaml` にコピーして使う | 済 |
-| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻、終値が未反映のときの取り直し | 済 |
+| `markets.yaml` | マーケット一覧とセクターの銘柄コード、任意項目のオン・オフ、NY終値の確定時刻、終値が未反映のときの取り直し、ビジュアルレポートで大きく出す項目（`tiles`） | 済 |
 | `scoring.yaml` | 判定ルールの区切りの値、RSI の各区分の点数、一目のずらし、移動平均の本数 | 済 |
 | `events.yaml` | FOMC・日銀の日程（2026-11-17 に公式ページから転記）、FRED で拾う指標と時刻・重要度、決算の重要度と直近の決算を出す期間、表示する期間 | 済 |
 | `feeds.yaml` | 市場ニュースの RSS（暗号資産・マクロ・公的機関）、カテゴリごとの要約枠、フィードごとの `keyword_filter` / `ignore_keywords` | 済 |
