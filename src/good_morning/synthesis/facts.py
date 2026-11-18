@@ -43,8 +43,17 @@ def _sectors(ctx: RunContext) -> list[str]:
         return []
     lines = [f"## 米国セクター別騰落率（上位{SECTOR_EDGE}・下位{SECTOR_EDGE}）"]
     picked = rows if len(rows) <= SECTOR_EDGE * 2 else rows[:SECTOR_EDGE] + rows[-SECTOR_EDGE:]
-    lines.extend(f"- {q.name}（{q.ticker}）: {format_change_pct(q)}" for q in picked)
+    lines.extend(f"- {q.name}（{q.ticker}）: {format_change_pct(q)}{_stale_note(q)}" for q in picked)
     return lines
+
+
+def _stale_note(q: Quote) -> str:
+    if q.missing_close is None:
+        return ""
+    return (
+        f"（{q.last_date.month}/{q.last_date.day} 終値。"
+        f"{q.missing_close.month}/{q.missing_close.day} の終値は取得元に未反映）"
+    )
 
 
 def _btc(ctx: RunContext) -> list[str]:

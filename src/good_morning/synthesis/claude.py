@@ -17,6 +17,7 @@ from good_morning.context import RunContext
 from good_morning.processor import summarizer
 from good_morning.synthesis.facts import build_facts
 from good_morning.synthesis.numbers import unknown_numbers
+from good_morning.synthesis.stale import annotate_stale_dates, stale_values
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,22 @@ def synthesize(ctx: RunContext, client=None, prompts: dict | None = None) -> Syn
     if len(result.summary_lines) != 3:
         logger.warning("まとめの行数が3ではありません（%d行）", len(result.summary_lines))
         result.summary_lines = result.summary_lines[:3]
+    add_stale_dates(result, ctx)
     return result
+
+
+def add_stale_dates(result: Synthesis, ctx: RunContext) -> None:
+    """前の営業日の終値を日付なしで使った文に、日付を添える（BTC のまとめはテクニカルの話なので見ない）"""
+    values = stale_values(ctx)
+    if not values:
+        return
+    before = result.all_text()
+    result.summary_lines = [annotate_stale_dates(line, values) for line in result.summary_lines]
+    result.bullish = [annotate_stale_dates(item, values) for item in result.bullish]
+    result.bearish = [annotate_stale_dates(item, values) for item in result.bearish]
+    result.conclusion = annotate_stale_dates(result.conclusion, values)
+    if result.all_text() != before:
+        logger.info("まとめ: 前の営業日の終値を使った文に日付を添えました")
 
 
 def get_synthesis(ctx: RunContext) -> Synthesis:

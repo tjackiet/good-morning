@@ -236,3 +236,83 @@ def test_partly_empty_closes_are_noted_per_row(stocks_with_empty_close):
     assert "エヌビディア（NVDA）" in rows
     assert "コインベース（COIN）（11/16 終値・11/17 は未反映）" in rows
     assert "⚠ 取得元にまだ 11/17 の終値が反映されていない銘柄は" in content.body
+
+
+# --- まとめ（Claude）で前の営業日の終値に日付を添える -------------------------------------
+
+
+@pytest.fixture
+def stale_ctx(stocks_with_empty_close):
+    stocks_with_empty_close(fill_after=None)  # 3銘柄とも 11/17 の終値が最後まで空
+    ctx = _ctx_after_close()
+    build_stock_watchlist(ctx)
+    return ctx
+
+
+def test_stale_values_come_from_quotes_with_missing_close(stale_ctx):
+    from datetime import date
+
+    from good_morning.synthesis.stale import stale_values
+
+    values = {v.label: v for v in stale_values(stale_ctx)}
+
+    assert set(values) == {"NVDA", "COIN", "MSTR"}
+    assert values["NVDA"].close_date == date(2026, 11, 16)
+    assert values["NVDA"].numbers == {"156.14", "4.12"}  # 終値と前日比%
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        # 2026-11-18 の実際の出力: 日付がないので末尾に添える
+        (
+            "暗号資産関連株はCOIN-6.12%、MSTR-7.70%、NVDA-4.12%と大幅下落した。",
+            "暗号資産関連株はCOIN-6.12%、MSTR-7.70%、NVDA-4.12%と大幅下落した（COIN・MSTR・NVDA は 11/16 終値）。",
+        ),
+        # 日付があれば（「月日」の書き方も）そのまま
+        ("NVDA-4.12%（いずれも11/16終値）と下落した。", "NVDA-4.12%（いずれも11/16終値）と下落した。"),
+        ("NVDAは11月16日に4.12%下落した。", "NVDAは11月16日に4.12%下落した。"),
+        # 未反映の銘柄の数値がなければそのまま
+        ("S&P500は-1.03%下落した。", "S&P500は-1.03%下落した。"),
+        # 句点がなければ末尾に足す
+        ("NVDA は 156.14ドル", "NVDA は 156.14ドル（NVDA は 11/16 終値）"),
+    ],
+)
+def test_annotate_stale_dates(stale_ctx, text, expected):
+    from good_morning.synthesis.stale import annotate_stale_dates, stale_values
+
+    assert annotate_stale_dates(text, stale_values(stale_ctx)) == expected
+
+
+def test_synthesis_lines_get_dates_but_btc_comment_is_left_alone(stale_ctx):
+    from good_morning.synthesis.claude import Synthesis, add_stale_dates
+
+    result = Synthesis(
+        stance="リスクオフ",
+        summary_lines=["一行目。", "NVDA-4.12%と大幅下落した。", "三行目。"],
+        btc_comment="RSI は 4.12 ではない話。",
+        bullish=["強気。"],
+        bearish=["COIN-6.12%の下落。"],
+        conclusion="まとめ。",
+    )
+
+    add_stale_dates(result, stale_ctx)
+
+    assert result.summary_lines[1] == "NVDA-4.12%と大幅下落した（NVDA は 11/16 終値）。"
+    assert result.bearish == ["COIN-6.12%の下落（COIN は 11/16 終値）。"]
+    assert result.btc_comment == "RSI は 4.12 ではない話。"  # テクニカルの話は見ない
+    assert result.summary_lines[0] == "一行目。"
+
+
+def test_facts_mark_stale_sectors(stocks_with_empty_close, monkeypatch):
+    """セクターも未反映なら、Claude に渡すデータに日付と未反映を書く"""
+    from good_morning.synthesis.facts import _sectors
+
+    stocks_with_empty_close(fill_after=None)
+    ctx = _ctx_after_close()
+    build_stock_watchlist(ctx)
+    ctx.data["sectors"] = ctx.data["stock_watchlist"]  # 同じ Quote で形だけ確かめる
+
+    lines = _sectors(ctx)
+
+    assert lines[1].endswith("（11/16 終値。11/17 の終値は取得元に未反映）")
