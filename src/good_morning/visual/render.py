@@ -11,6 +11,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
 from good_morning.crypto.config import load_scoring_config
+from good_morning.markets.config import load_markets_config
 from good_morning.paths import OUTPUTS_DIR
 from good_morning.visual.charts import add_bar_widths, rsi_svg
 from good_morning.visual.viewmodel import split_label
@@ -67,9 +68,34 @@ def upgrade_view(view: dict) -> dict:
     return view
 
 
+def arrange_markets(view: dict, tiles: list[str] | None = None) -> dict:
+    """マーケット一覧を、上に大きく出すタイル（tiles の順）と、表に出す残り（others）に分ける
+
+    tiles を省くと markets.yaml の tiles を使う。渡された view は書き換えず、新しい dict を返す。
+    設定にあっても保存したデータにない項目（任意項目をオフにした日など）は飛ばす。
+    """
+    markets = view.get("markets")
+    if not markets:
+        return view
+    tiles = load_markets_config().tiles if tiles is None else tiles
+    rows = markets.get("rows") or []
+    by_ticker = {r["ticker"]: r for r in rows}
+    arranged = {
+        **markets,
+        "tiles": [by_ticker[t] for t in tiles if t in by_ticker],
+        "others": [r for r in rows if r["ticker"] not in tiles],
+    }
+    return {**view, "markets": arranged}
+
+
+def prepare_view(view: dict) -> dict:
+    """テンプレートに渡す前の下ごしらえ（古い形式の補い・マーケットの振り分け）"""
+    return arrange_markets(upgrade_view(view))
+
+
 def render_html(view: dict, standalone: bool = True) -> str:
     """standalone=False で、claude.ai のアーティファクトに公開する用の HTML（doctype などを付けない）を作る"""
-    view = upgrade_view(view)
+    view = prepare_view(view)
     rsi_config = load_scoring_config().rsi
     btc = view.get("btc") or {}
     chart = rsi_svg(btc.get("rsi_history") or [], rsi_config.oversold, rsi_config.overbought)

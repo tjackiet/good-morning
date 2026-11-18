@@ -65,6 +65,8 @@ class MarketsConfig(BaseModel):
     optional_groups: dict[str, bool] = Field(default_factory=dict)
     markets: list[MarketItem]
     sectors: list[SectorItem]
+    # ビジュアルレポートで BTC の下に大きく出す項目（銘柄コード、この順）。残りは「その他の指標」の表へ
+    tiles: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _check_groups(self):
@@ -73,6 +75,13 @@ class MarketsConfig(BaseModel):
             raise ValueError(
                 f"optional_groups に定義されていないグループがあります: {', '.join(sorted(unknown))}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_tiles(self):
+        unknown = [t for t in self.tiles if t not in {m.ticker for m in self.markets}]
+        if unknown:
+            raise ValueError(f"tiles に markets にない銘柄コードがあります: {', '.join(unknown)}")
         return self
 
     def enabled_markets(self) -> list[MarketItem]:

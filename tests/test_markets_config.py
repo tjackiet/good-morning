@@ -22,6 +22,12 @@ def test_shipped_config_matches_spec():
     ]  # fmt: skip
     tnx = config.markets[0]
     assert (tnx.format, tnx.basis) == ("yield", "close")
+    assert config.tiles == ["^DJI", "^GSPC", "^IXIC", "JPY=X", "^TNX", "CL=F"]
+
+
+def test_unknown_tile_ticker_is_rejected():
+    with pytest.raises(ValidationError, match="tiles"):
+        MarketsConfig(markets=[{"ticker": "^DJI", "name": "NYダウ"}], sectors=[], tiles=["^DJI", "^N225"])
 
 
 def test_unknown_group_is_rejected():

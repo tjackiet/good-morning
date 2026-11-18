@@ -114,14 +114,21 @@ ol.lines li { margin: 6px 0; }
 .hero .value { font-size: 44px; font-weight: 700; line-height: 1.1; letter-spacing: 0.01em; }
 .hero .unit { font-size: 16px; color: var(--ink-2); }
 .hero .delta { font-size: 16px; font-weight: 600; }
+/* 1段に3つ（米国株の指数・金利と為替などのまとまりが、スマホでも崩れないように列数は変えない） */
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
-@media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 10px; }
 .tile .t-label { font-size: 12px; color: var(--ink-2); }
 .tile .t-value { font-size: 17px; font-weight: 700; }
 .tile .t-delta { font-size: 12px; font-weight: 600; }
 .tile .t-note, .stale { font-size: 11px; color: var(--down-text); }
 .stale { margin-top: 8px; }
+@media (max-width: 520px) {
+  .tiles { gap: 6px; }
+  .tile { padding: 7px 8px; }
+  .tile .t-label { font-size: 11px; }
+  .tile .t-value { font-size: 15px; }
+  .tile .t-delta { font-size: 11.5px; }
+}
 
 /* BTC のテクニカル（行＝判定の要素、列＝日足・週足・月足） */
 table.tech { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
@@ -264,12 +271,13 @@ footer ul { padding-left: 1.2em; margin: 4px 0; }
       {% endfor %}
     </div>
     {% if v.markets.note %}<p class="stale">{{ v.markets.note }}</p>{% endif %}
+    {% if v.markets.others %}
     <details class="later">
-      <summary>すべての指標を見る</summary>
+      <summary>その他の指標</summary>
       <table class="markets">
         <thead><tr><th>項目</th><th>終値</th><th>前日比</th><th>前日比%</th></tr></thead>
         <tbody>
-        {% for r in v.markets.rows %}
+        {% for r in v.markets.others %}
           <tr>
             <td>{{ r.name }}{% if r.live %} ※{% endif %}{% if r.date_note %}<span class="tk">（{{ r.date_note }}）</span>{% endif %}</td>
             {% if r.failed %}<td class="muted">取得失敗</td><td>—</td><td>—</td>
@@ -279,6 +287,7 @@ footer ul { padding-left: 1.2em; margin: 4px 0; }
         </tbody>
       </table>
     </details>
+    {% endif %}
   {% else %}
     <p class="failed">取得失敗</p>
   {% endif %}
