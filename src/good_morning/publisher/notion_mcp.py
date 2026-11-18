@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import json
 import logging
 import os
 import re
@@ -19,13 +20,25 @@ from good_morning.timeutil import now_jst
 logger = logging.getLogger(__name__)
 
 NOTION_PAGE_ID_ENV = "NOTION_PAGE_ID"
-_NOTION_URL = re.compile(r"https://(?:www\.)?notion\.(?:so|site)/[^\s\"'<>)\]]+")
+# notion.so / notion.site のほか、2026-11-18 の実際の応答は app.notion.com/p/... だった
+_NOTION_URL = re.compile(r"https://(?:[\w-]+\.)?notion\.(?:so|site|com)/[^\s\"'<>)\]]+")
 
 
 def extract_page_url(result_text: str | None) -> str | None:
-    """Notion MCP の応答の文章から、作成したページの URL を取り出す（見つからなければ None）"""
+    """Notion MCP の応答から、作成したページの URL を取り出す（見つからなければ None）
+
+    notion-create-pages の応答は JSON（{"pages": [{"id": ..., "url": ..., ...}]}）なので、
+    まず JSON として読む。JSON でなければ、文章の中から Notion の URL を探す。
+    """
     if not result_text:
         return None
+    try:
+        pages = json.loads(result_text).get("pages") or []
+        url = pages[0].get("url") if pages else None
+        if isinstance(url, str) and url.startswith("https://"):
+            return url
+    except (ValueError, AttributeError, TypeError, IndexError):
+        pass
     match = _NOTION_URL.search(result_text)
     return match.group().rstrip(".,") if match else None
 
