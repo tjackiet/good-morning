@@ -43,7 +43,8 @@ def setup_logging(log_dir: Path | None = None, now: datetime | None = None) -> P
     root.addHandler(file_handler)
 
     # ライブラリ側の細かいログ（HTTP 通信など）はファイルにも出さない
-    for noisy in ("httpx", "httpcore", "anthropic", "mcp"):
+    # httpx2 は anthropic SDK 2.x が使う HTTP ライブラリ（INFO だとリクエストの URL を出す）
+    for noisy in ("httpx", "httpx2", "httpcore", "anthropic", "mcp", "yfinance", "curl_cffi"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
     _CONFIGURED = True

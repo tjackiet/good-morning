@@ -1,0 +1,16 @@
+# 通知の設定
+#
+# Discord の Webhook URL は環境変数 DISCORD_WEBHOOK_URL で渡す（ここには書かない。公開リポジトリのため）。
+# 通知は `good-morning run --notify` のときだけ送る。同じ日に2回は送らない（--force-notify で再送）。
+# 値は Discord の公式ドキュメント（Execute Webhook・Message Flags）で確認済み（2026-11-18）。
+
+discord:
+  # リンクのプレビュー（埋め込み）を出さない（flags の SUPPRESS_EMBEDS = 4）。
+  # Notion の非公開ページはプレビューが空の枠になるため、既定でオン。
+  suppress_embeds: true
+  # プッシュ通知を鳴らさない（flags の SUPPRESS_NOTIFICATIONS = 4096）。
+  silent: false
+  # 429（送りすぎ）のとき、返ってきた retry_after 秒だけ待って1回だけ再送する（1日1回の通知なので）。
+  retry_on_429: true
+  # 再送で待つ上限（秒）
+  max_retry_wait_seconds: 30

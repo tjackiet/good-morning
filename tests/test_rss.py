@@ -30,7 +30,7 @@ def test_parse_published_date_returns_none_when_no_dates():
 
 
 def _fake_get(text):
-    def fake_get(url, headers=None, follow_redirects=True, timeout=30):
+    def fake_get(url, headers=None, follow_redirects=True, timeout=30, verify=None):
         return SimpleNamespace(text=text, raise_for_status=lambda: None)
 
     return fake_get

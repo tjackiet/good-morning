@@ -16,6 +16,8 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from good_morning.net import NODE_SYSTEM_CA_ENV
+
 logger = logging.getLogger(__name__)
 
 SERVER_PACKAGE = "bitbank-lab-mcp@0.8.0"
@@ -32,7 +34,9 @@ class BitbankMCPError(Exception):
 
 
 def server_parameters() -> StdioServerParameters:
-    return StdioServerParameters(command="npx", args=["-y", SERVER_PACKAGE])
+    return StdioServerParameters(
+        command="npx", args=["-y", SERVER_PACKAGE], env=dict(NODE_SYSTEM_CA_ENV)
+    )
 
 
 @dataclass

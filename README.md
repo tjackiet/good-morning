@@ -4,11 +4,11 @@
 株式・債券・為替・コモディティ・暗号資産の数値、今後30日の予定、主要ニュースを集約し、
 Markdown のレポートとして出力します。メイン銘柄は BTC です。
 
-> 開発中です。進み具合は [CLAUDE.md](CLAUDE.md) のフェーズ表を参照してください。
+> 開発中です（定時実行の設定が未完了）。進み具合は [CLAUDE.md](CLAUDE.md) のフェーズ表を参照してください。
 
 ## 特徴
 
-- 数値はすべて API から機械的に取得し、LLM（Claude）は要約・まとめの文章だけを担当します
+- 数値はすべて API から機械的に取得し、LLM（Claude）は要約・まとめの文章だけを担当します。Claude の文章に出てくる数値は、元データと機械的に照合します
 - 一部のデータ取得に失敗しても、該当欄を「取得失敗」と表示してレポート全体は出力します
 - 銘柄・フィード・キーワード・イベント・判定基準は YAML で変更できます
 - 時刻はすべて JST で表示し、データごとの基準時刻（NY終値／取得時点）を明記します
@@ -46,6 +46,12 @@ cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
 
 # Notion にも書き出す（任意。.env に NOTION_PAGE_ID が必要）
 .venv/bin/good-morning run --publish
+
+# Discord に通知する（任意。.env に DISCORD_WEBHOOK_URL が必要。同じ日は1回だけ）
+.venv/bin/good-morning run --publish --notify
+
+# 通知の文面を確かめるだけ（送らない）
+.venv/bin/good-morning run --notify-preview
 
 # RSS 記事の通過/除外の理由を確認
 .venv/bin/good-morning collect-cmd --explain

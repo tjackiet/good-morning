@@ -179,8 +179,6 @@ def build_btc(ctx: RunContext) -> SectionContent:
                 "※ 最新の足は形成中（途中経過）です。日足は毎日 9:00、週足は月曜 9:00、"
                 "月足は1日 9:00（日本時間）に新しい足に切り替わります。"
             ),
-            "",
-            "> Claude による2〜3行のまとめは、フェーズ5で追加します。",
         ]
     )
     return SectionContent(

@@ -36,6 +36,15 @@ def run(
     output_dir: Annotated[
         Path | None, typer.Option("--output-dir", help="出力先（省略時は outputs/）")
     ] = None,
+    notify: Annotated[
+        bool, typer.Option("--notify", help="Discord に通知する（同じ日は1回だけ）")
+    ] = False,
+    force_notify: Annotated[
+        bool, typer.Option("--force-notify", help="その日送信済みでも Discord に送り直す")
+    ] = False,
+    notify_preview: Annotated[
+        bool, typer.Option("--notify-preview", help="通知の文面を表示するだけで送らない")
+    ] = False,
 ):
     """モーニングレターを生成して outputs/YYYY-MM-DD.md に保存する"""
     _init()
@@ -57,21 +66,39 @@ def run(
             )
 
     logger.info("セクション作成:")
-    sections = build_sections(RunContext(now=now, watchlist=watchlist))
+    ctx = RunContext(now=now, watchlist=watchlist)
+    sections = build_sections(ctx)
 
     report = render_report(sections, meta)
     filepath = save_report(report, now, output_dir)
     logger.info("保存: %s", filepath)
 
+    link = None
     if publish:
         # Notion 連携は任意機能。失敗してもローカル保存は済んでいるので止めない
         from good_morning.publisher import publish_to_notion_sync
+        from good_morning.publisher.notion_mcp import extract_page_url
 
         try:
             result = publish_to_notion_sync(report)
-            logger.info("Notion: %s", result)
+            link = extract_page_url(result)
+            logger.info("Notion: 書き出し完了（ページ: %s）", link or "URL を取得できませんでした")
         except Exception:
             logger.exception("Notion への書き出しに失敗しました")
+
+    if notify or force_notify or notify_preview:
+        # 通知も任意機能。失敗しても例外にせず、理由をログに残す（レポートの保存は済んでいる）
+        from good_morning.notify.discord import notify_once
+        from good_morning.notify.message import build_notification
+
+        message = build_notification(ctx, sections, link, str(filepath))
+        if notify_preview:
+            typer.echo("--- 通知の文面（送信しません）---")
+            typer.echo(message)
+        else:
+            result = notify_once(message, now.date(), force=force_notify)
+            log = logger.info if result.sent else logger.warning
+            log("Discord: %s", result.reason)
 
 
 @app.command()

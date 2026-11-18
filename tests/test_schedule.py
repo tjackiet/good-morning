@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pytest
 from conftest import (
-    FRED_SYNTHETIC_FIXTURE,
+    FRED_FIXTURE,
     YF_EARNINGS_FIXTURE,
     earnings_frame,
     load_fixture_json,
@@ -74,20 +74,38 @@ def test_static_events_apply_category_defaults():
 # --- FRED -----------------------------------------------------------------------
 
 
-def test_fred_events_keep_configured_releases_only():
-    release_dates = parse_release_dates(load_fixture_json(FRED_SYNTHETIC_FIXTURE))
+def test_fred_events_from_real_release_dates():
+    """実データ（約900件の発表予定）から、events.yaml に書いた8指標だけを拾う"""
+    release_dates = parse_release_dates(load_fixture_json(FRED_FIXTURE))
 
     events = fred_events(release_dates, CONFIG.fred)
-    titles = [(e.day, e.title) for e in events]
+    by_title = {}
+    for e in events:
+        by_title.setdefault(e.title, []).append(e.day)
 
-    # H.15 は events.yaml にないので出さない。同じ日の重複は1件にする
-    assert (date(2026, 11, 19), "米新規失業保険申請件数") in titles
-    assert sum(1 for _, t in titles if t == "米新規失業保険申請件数") == 1
-    assert all("H.15" not in t for _, t in titles)
+    assert len(release_dates) == 900
+    assert set(by_title) == {r.title for r in CONFIG.fred.releases}  # 8指標すべて名前が一致
+    assert by_title["米雇用統計"] == [date(2026, 12, 4)]
+    assert by_title["米個人所得・個人消費支出（PCE）"] == [date(2026, 11, 25)]
+    assert len(by_title["米新規失業保険申請件数"]) == 5  # 毎週木曜（感謝祭の週は水曜）
     cpi = next(e for e in events if e.title == "米消費者物価指数（CPI）")
     # 8:30（米東部・冬時間）= 日本時間 22:30
     assert cpi.when == datetime(2026, 12, 10, 22, 30, tzinfo=JST)
     assert cpi.importance == "高"
+
+
+def test_fred_events_drop_duplicates_and_unknown_releases():
+    release_dates = parse_release_dates(
+        {
+            "release_dates": [
+                {"release_id": 18, "release_name": "H.15 Selected Interest Rates", "date": "2026-11-18"},
+                {"release_id": 10, "release_name": "Consumer Price Index", "date": "2026-12-10"},
+                {"release_id": 10, "release_name": "Consumer Price Index", "date": "2026-12-10"},
+            ]
+        }
+    )
+
+    assert [e.title for e in fred_events(release_dates, CONFIG.fred)] == ["米消費者物価指数（CPI）"]
 
 
 # --- 決算 -----------------------------------------------------------------------
