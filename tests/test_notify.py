@@ -239,5 +239,6 @@ def test_extract_page_url(text, url):
 
 
 def test_attach_card_setting():
-    assert load_notify_config().discord.attach_card is True  # 出荷時は添付する
-    assert DiscordConfig(attach_card=False).attach_card is False
+    assert load_notify_config().discord.attach_card is False  # 出荷時はリンクと文章だけ
+    assert DiscordConfig().attach_card is False
+    assert DiscordConfig(attach_card=True).attach_card is True

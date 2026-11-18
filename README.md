@@ -13,7 +13,7 @@ Markdown のレポートと、グラフ入りのビジュアルレポート（HT
 - 銘柄・フィード・キーワード・イベント・判定基準は YAML で変更できます
 - 時刻はすべて JST で表示し、データごとの基準時刻（NY終値／取得時点）を明記します
 - ビジュアルレポートはライト・ダークの両方に対応し、上がり・下がりは色だけでなく ▲▼ と +/− でも示します
-- Discord には、判定と主要な数値をまとめた画像のカードを添付して通知できます
+- Discord には、判定・3行の要約・BTC の価格と、レポートへのリンクを通知します（設定で画像のカードも添付できます）
 
 ## データ取得元
 
@@ -31,12 +31,14 @@ Markdown のレポートと、グラフ入りのビジュアルレポート（HT
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ".[dev,card]"
-.venv/bin/python -m playwright install chromium          # 画像のカード用（任意）
+.venv/bin/pip install -e ".[dev]"
 
 cp .env.example .env                                     # API キーを記入
 cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
 ```
+
+画像のカードを Discord に添付したいときは、`config/notify.yaml` の `attach_card` を `true` にし、
+`.venv/bin/pip install -e ".[dev,card]"` と `.venv/bin/python -m playwright install chromium` も実行してください。
 
 `.env` と `config/watchlist.yaml` は `.gitignore` 済みです。`watchlist.yaml` がない場合は
 見本（`watchlist.example.yaml`）を読み込み、警告を出します。
@@ -74,7 +76,7 @@ cp config/watchlist.example.yaml config/watchlist.yaml   # 銘柄を編集
 | `YYYY-MM-DD.json` | ビジュアルレポートの元データ（計算済みの数値と文章） |
 | `YYYY-MM-DD.html` | ビジュアルレポート（ブラウザで開ける） |
 | `YYYY-MM-DD-artifact.html` | 同じレポートの claude.ai アーティファクト用 |
-| `YYYY-MM-DD-card.png` | Discord に添付する画像のカード（Playwright が入っているとき） |
+| `YYYY-MM-DD-card.png` | Discord に添付する画像のカード（`config/notify.yaml` で `attach_card: true` のときだけ） |
 
 ログは `logs/YYYY-MM-DD.log` に出力されます。
 

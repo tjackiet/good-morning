@@ -77,6 +77,7 @@ def run(
     day = now.strftime("%Y-%m-%d")
     view, card = None, None
     try:
+        from good_morning.notify.discord import load_notify_config
         from good_morning.visual.card import card_path, render_card_png
         from good_morning.visual.render import render_html, save_html, save_view
         from good_morning.visual.viewmodel import build_view
@@ -86,9 +87,11 @@ def run(
         html_file = save_html(render_html(view), day, output_dir)
         save_html(render_html(view, standalone=False), day, output_dir, artifact=True)
         logger.info("ビジュアルレポート: %s（アーティファクト用も保存）", html_file)
-        card = render_card_png(view, card_path(day, output_dir))
-        if card:
-            logger.info("画像のカード: %s", card)
+        # 画像のカードは Discord に添付するときだけ作る（notify.yaml の attach_card。既定は作らない）
+        if load_notify_config().discord.attach_card:
+            card = render_card_png(view, card_path(day, output_dir))
+            if card:
+                logger.info("画像のカード: %s", card)
     except Exception:
         logger.exception("ビジュアルレポートの作成に失敗しました")
 
