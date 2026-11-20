@@ -21,6 +21,9 @@ Markdown のレポートと、グラフ入りのビジュアルレポート（HT
 |---|---|
 | 株・指数・為替・金利・商品・セクターETF | [yfinance](https://github.com/ranaroussi/yfinance) |
 | 暗号資産 | [bitbank-lab-mcp](https://www.npmjs.com/package/bitbank-lab-mcp)（公開データのみ） |
+| BTC 現物ETF の資金流出入 | [SoSoValue API](https://sosovalue-1.gitbook.io/sosovalue-api-doc)（API キーが必要） |
+| ステーブルコインの供給量 | [DefiLlama](https://defillama.com/stablecoins) |
+| Coinbase プレミアム・日本プレミアム | Coinbase・Binance・bitbank の公開 API |
 | 経済指標の発表予定日 | [FRED API](https://fred.stlouisfed.org/docs/api/fred/) |
 | FOMC・日銀会合 | 公式日程を `config/events.yaml` に転記 |
 | ニュース | 各社の RSS |

@@ -13,7 +13,7 @@ from markupsafe import Markup
 from good_morning.crypto.config import load_scoring_config
 from good_morning.markets.config import load_markets_config
 from good_morning.paths import OUTPUTS_DIR
-from good_morning.visual.charts import add_bar_widths, rsi_svg
+from good_morning.visual.charts import add_bar_widths, flow_columns_svg, rsi_svg
 from good_morning.visual.viewmodel import split_label
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -65,6 +65,12 @@ def upgrade_view(view: dict) -> dict:
                 sg["main"], sg["detail"] = split_label(sg["label"])
             if sg.get("name") == "移動平均の並び":
                 sg["name"] = "移動平均"
+    demand = view.get("demand")
+    if demand:  # 見方と注記は説明の文なので、保存した日も今の文で描く
+        from good_morning.demand.builder import HOW_TO_READ, PREMIUM_NOTE
+
+        demand["how_to_read"] = [{"name": name, "text": text} for name, text in HOW_TO_READ]
+        demand["note"] = PREMIUM_NOTE
     return view
 
 
@@ -99,9 +105,12 @@ def render_html(view: dict, standalone: bool = True) -> str:
     rsi_config = load_scoring_config().rsi
     btc = view.get("btc") or {}
     chart = rsi_svg(btc.get("rsi_history") or [], rsi_config.oversold, rsi_config.overbought)
+    flow_chart = flow_columns_svg((view.get("etf") or {}).get("recent") or [])
     template = _environment().get_template("report.html.j2")
-    # rsi_svg は数値と、エスケープ済みの日付だけで作った SVG なので、そのまま埋め込む
-    return template.render(v=view, rsi_chart=Markup(chart), standalone=standalone)
+    # SVG は数値と、エスケープ済みの文字（日付・表記）だけで作っているので、そのまま埋め込む
+    return template.render(
+        v=view, rsi_chart=Markup(chart), flow_chart=Markup(flow_chart), standalone=standalone
+    )
 
 
 def view_path(day: str, outputs_dir: Path | None = None) -> Path:

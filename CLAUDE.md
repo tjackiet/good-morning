@@ -45,9 +45,11 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
 
 0. ヘッダー: 日付、データ基準時刻（NY終値／BTCは取得時点／先物は取得時点の値／週足・月足は形成中）
 1. 今朝のまとめ: 「リスクオン／リスクオフ／様子見」の3段階判定と3行の要約（Claude。根拠の数値を必ず挙げる）
-2. マーケット一覧（終値・前日比・前日比%）: BTC/JPY（bitbank、24時間の変化率）、米10年債 `^TNX`（%表示、前日比は bp）、ドル円 `JPY=X`、`^DJI` `^GSPC` `^IXIC`、`CL=F` `GC=F`。任意（初期値オン）: `^VIX` `DX-Y.NYB` `ES=F` `NQ=F` `YM=F`
+2. マーケット一覧（終値・前日比・前日比%）: BTC/JPY（bitbank、24時間の変化率）、米10年債 `^TNX`（%表示、前日比は bp）、ドル円 `JPY=X`、`^DJI` `^GSPC` `^IXIC`、`CL=F` `GC=F`。任意: `^VIX` `DX-Y.NYB`（オン）、`ES=F` `NQ=F` `YM=F`（株価指数先物。2026-11-20 にオフ）
 3. セクター別騰落率: SPDR 11セクター（XLK XLF XLE XLV XLY XLP XLI XLB XLU XLRE XLC）を騰落率順に（Markdown の表、グラフ不要）
 4. BTCの詳細: 日足・週足・月足 × 一目（雲との位置・三役）、移動平均の並び（25/75/200本）、BBのσ位置、RSI(14)、MACD、判定。日足RSIの直近7日の推移と Claude の2〜3行のまとめ
+- BTC 現物ETF の資金流出入（2026-11-20 に追加）: 米国の合計の純流入（直近5営業日）・累計・純資産と、銘柄別（IBIT など）の純流入。確定している最新の日にそろえる
+- 暗号資産の需給（2026-11-20 に追加）: ステーブルコインの供給量（合計・前日比・7日の増減と USDT・USDC の内訳）、Coinbase プレミアム、日本プレミアム
 5. 暗号資産ウォッチリスト（5銘柄）: 価格、24時間の変化率、対BTCの強弱（BTCの変化率との差）
 6. 株式ウォッチリスト（米国株10銘柄）: 終値、前日比、騰落率順
 7. 今後の予定: 7日以内は日時（JST）・内容・重要度（高中低）・予想値（取れれば）。8〜30日は1行ずつ。決算はウォッチリストと `related` の企業
@@ -70,6 +72,9 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
 | FOMC・日銀会合 | `config/events.yaml` に公式日程を年1回手で転記 | FOMC 議事要旨は会合の約3週間後。日付も書く |
 | 決算日 | yfinance `Ticker.calendar` / `get_earnings_dates()` | 確定／推定を区別する |
 | ニュース | RSS（aion の仕組み） | |
+| BTC 現物ETF の資金流出入 | SoSoValue API（`https://openapi.sosovalue.com/openapi/v1`） | `SOSO_API_KEY`。1分20回・1か月10万回まで |
+| ステーブルコインの供給量 | DefiLlama（`stablecoins.llama.fi`） | キー不要 |
+| プレミアム用の BTC の現物価格 | Coinbase・Binance・bitbank の公開 API | キー不要。続けて取得する |
 
 ### yfinance の扱い（フェーズ1で実装・検証済み）
 
@@ -112,6 +117,31 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
   - 会社名と決算の語（`watchlist.earnings_words`）が両方出る記事を「決算の記事」とし、`earnings_bonus` を足したうえで、5本のうち `earnings_slots`（既定1）本を優先して回す（`ranking.py` の `select_for_summary` の `priority`）。加点だけだと BTC・FRB の記事（20点前後）に負けた（2026-11-18 の NVIDIA の決算で、決算の記事は 18.6点）。
   - 決算の語だけでは記事を通さない（ウォッチリスト外の企業の決算で枠が埋まらないように）。`collect-cmd --explain` では「（決算の記事）」と表示する。
   - キーワードは読み込み時に watchlist.yaml（なければ見本）から作る。テストは見本のウォッチリストが前提（手元に watchlist.yaml があると、記事選定のベースラインなどの数値が変わる）。
+
+### BTC 現物ETF の資金流出入（2026-11-20 に追加）
+
+- **取得元**: SoSoValue の API（`collector/sosovalue.py`。ここだけが SoSoValue に触れる）。合計は `GET /etfs/summary-history?symbol=BTC&country_code=US`、銘柄別は `GET /etfs/{ticker}/history`。応答は `{"code": 0, "message": "success", "data": [...]}`（2026-11-20 に実データで確認）。キーはヘッダー `x-soso-api-key` で渡し、エラーの文言には入れない（FRED と同じ扱い）。
+- **Farside は使わない**: farside.co.uk はプログラムからの取得を Cloudflare で止めている（ブラウザの User-Agent でも HTTP 403「Just a moment」）。ボット対策をくぐることになるので回避しない。CoinGlass・Glassnode は有料。
+- **翌営業日に確定する（T+1）**: 当日の行はあっても、純流入などの項目がない（または null）。2026-11-20 9:30 JST には、合計・IBIT・FBTC は 11/18 まで、GBTC・ARKB・BITB は 11/19 まで確定していた。6:45 の時点では、株価の終値（前日）より1営業日古い日の分になる。
+  - 日付は合計の最新の確定日にそろえる（銘柄ごとに日付がずれないように）。合計が取れなければ、取れた銘柄がすべて確定している最新の日にそろえる（`etf/builder.py` の `assemble`）。そろえた日に確定していない銘柄は「未確定」。
+  - そろえた日より新しい日に確定している銘柄の分は捨てず、「11/19（一部）」の列（ビジュアルでは別の枠）に出し、未確定の銘柄を添える（Farside で空欄の行と同じ見せ方。ユーザーの要望）。一部の銘柄だけなので合計は作らず、プロンプトで「その銘柄の動きとしてだけ書く」と指示している。
+- **表記**: 純流入は百万ドル・小数1桁（Farside の US$m と同じ。例 -306.4）、累計と純資産は億ドル・整数。割り算は表示の単位をそろえるためだけ。11/17 の合計 -239.9百万ドルは Farside の -239m と一致した。
+- **失敗の扱い**: 合計・銘柄ごとに独立。1つの失敗はその行（合計なら推移の表）だけ「取得失敗」、全部失敗かキーがなければセクションごと「取得失敗」。
+- 銘柄（`config/etf.yaml` の `funds`）は1つにつき1回 API を呼ぶ。銘柄コードは URL のパスに入るので英大文字と数字だけを受け付ける。
+- Claude に渡すデータ・ビジュアルレポート（BTC のテクニカルの次）・Discord の文面（合計の1行）にも載せる。ビジュアルの合計の推移は縦の棒グラフ（`charts.py` の `flow_columns_svg`。0 の線から流入は上・流出は下、棒ごとに値を添える。ユーザーの要望）、銘柄別は横棒。プロンプトで「日付と単位（百万ドル）を添え、換算しない」と指示している。
+- 固定データは `scripts/capture_etf_fixture.py` で保存する（`tests/fixtures/sosovalue/`）。テストでは `fake_sosovalue` フィクスチャで差し替える。
+
+### 暗号資産の需給（2026-11-20 に追加）
+
+- **ステーブルコイン**（`collector/defillama.py`）: 合計は `stablecoincharts/all` の日次（UTC の 0:00）のドル連動（`peggedUSD`）の値で、最新の日と前日・7日前（`demand.yaml` の `change_days`）の差。全期間が返る（約1.4MB・2秒ほど）。内訳（USDT・USDC）は `stablecoins` の銘柄ごとの `circulating`（取得時点）と `circulatingPrevDay`・`circulatingPrevWeek` の差。合計は DefiLlama の合計をそのまま使う（銘柄ごとの値を足すと少しずれるため、足した数では置き換えない）。
+- **Coinbase プレミアム** = (Coinbase BTC-USD ÷ Binance BTC-USDT − 1) × 100。Binance は USDT 建てなので USDT とドルの差も含む（CryptoQuant などと同じ定義）。
+- **日本プレミアム** = (bitbank BTC/JPY ÷ ドル円 ÷ Coinbase BTC-USD − 1) × 100。ドル円はマーケット一覧の `JPY=X`（取得時点）。
+  - **価格の時刻をそろえる**: bitbank-lab-mcp の BTC/JPY はマーケット一覧の最初に取るので、プレミアムを出すころには約1分たっていた（2026-11-20 の実行で 54 秒）。そこで bitbank・Binance・Coinbase の公開 API を続けて取る（1秒ほどの差）。bitbank の公開 API（`public.bitbank.cc`）が取れなければ、bitbank-lab-mcp の少し前の値を使い、その時刻を添える。
+  - 価格の時刻（日本時間）をレポートに添える。プロンプトで「取得時点の瞬間の値。±0.1% 前後を強い材料のように書かない」と指示している。
+- ステーブルコインと2つのプレミアムは独立に扱い、1つの失敗はその部分だけ「取得失敗」、全部失敗したらセクションごと「取得失敗」。セクションの並びはマーケット一覧（ドル円・bitbank のデータ）より後に置く。
+- ステーブルコインの増減は億ドルと増減率（%）の両方を出す（増減率 = 増減 ÷ 増減の前の値。`change_pct`）。ビジュアルのタイルは3つとも、大きく出すのは %、その下に金額（ユーザーの要望で表示をそろえた）。
+- ビジュアルでは、ETF の次に3つのタイル（ステーブルコイン・Coinbase プレミアム・日本プレミアム）と、その下に短い「見方」（増えていれば待機資金が増えている／プラスなら米国の買いが強い／プラスなら国内が割高。`builder.py` の `HOW_TO_READ`。ユーザーの要望で、どう見ればいいか分かるように）を出す。計算に使った価格・価格の時刻・USDT の注記は、たたんだ一覧に入れる。Markdown でもセクションの先頭に「見方:」を1行置く。
+- 固定データは `scripts/capture_demand_fixture.py` で保存する（`tests/fixtures/demand/`。使う項目だけに切り詰める）。
 
 ### 今朝のまとめ・暗号資産への示唆（フェーズ5で実装）
 
@@ -182,6 +212,8 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
 | `keywords.yaml` | 市場用語（日本語＋英語）とカテゴリごとの重み（`weight`）、ウォッチリストの企業の重みと決算の記事の扱い（`watchlist`） | 済 |
 | `prompts.yaml` | Claude のモデル名（`claude-sonnet-5`、aion と同じ）、`max_tokens`、記事要約のプロンプト、今朝のまとめ（synthesis）のプロンプト | 済 |
 | `notify.yaml` | Discord 通知の設定（画像のカードの添付・プレビューなし・無音・429 の再送） | 済 |
+| `etf.yaml` | BTC 現物ETF の資金流出入（合計の推移を出す日数、銘柄別に出す ETF と運用会社の名前） | 済 |
+| `demand.yaml` | 暗号資産の需給（ステーブルコインの増減を出す日数と内訳の銘柄、プレミアムに使う銘柄） | 済 |
 
 - 暗号資産のペアは bitbank の取扱銘柄と照合し、存在しないペアは警告してスキップする（フェーズ2）。
 - 上限を超えたら先頭から順に採用する（実装済み）。
@@ -193,6 +225,7 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
 - `NOTION_PAGE_ID`（任意）: Notion への書き出し先
 - `DISCORD_WEBHOOK_URL`（任意）: Discord 通知（`run --notify` / `notify`）
 - `REPORT_URL`（任意）: 毎朝上書きするアーティファクトの URL。通知のリンクになる（秘密ではないが、本人しか開けない）
+- `SOSO_API_KEY`（任意）: BTC 現物ETF の資金流出入（SoSoValue）。ないとそのセクションだけ「取得失敗」
 
 ## 未決事項（初期値で進め、変えやすくしておく）
 
@@ -208,7 +241,7 @@ claude.ai の非公開アーティファクトに載せる）も作り、Discord
     - launchd はシェルの環境変数を引き継がないので、plist の `EnvironmentVariables` に入れる（plist はリポジトリに入れない）。Mac がスリープ中は動かないので、フェーズ6で `pmset` による起動予約などを検討する。※ フェーズ6は launchd ではなく Claude アプリの定時タスクにした（自宅の iMac、6:45）。`.env` はプログラムが自分で読むので、環境変数の受け渡しは不要。
     - URL が漏れたら、Webhook を作り直して古いものを削除する。
 - **ウォッチリストの銘柄**: 見本は仮のもの。
-- **任意項目**（VIX、ドルインデックス、株価指数先物）: 初期値はオン。
+- **任意項目**（VIX、ドルインデックス、株価指数先物）: VIX・ドルインデックスはオン。株価指数先物は 2026-11-20 にユーザーと決めてオフ（6:45 の時点では NY の引けから1時間ほどで、NY3指数とほぼ同じ動きになり重なるため）。`markets.yaml` の `optional_groups.index_futures` を `true` にすれば戻る。
 
 ## コード構成
 
@@ -223,6 +256,10 @@ src/good_morning/
   collector/bitbank_mcp.py  bitbank-lab-mcp への接続（MCP に触れるのはここだけ）
   crypto/            scoring.yaml の読み込み、テクニカルの判定、BTCの詳細・暗号資産ウォッチリスト
   collector/fred.py  FRED の発表予定日の取得
+  collector/sosovalue.py  SoSoValue の BTC 現物ETF の資金流出入の取得
+  etf/               etf.yaml の読み込み、日付をそろえた表の組み立てと BTC 現物ETF のセクション
+  collector/defillama.py / spot_prices.py  ステーブルコインの供給量、Coinbase・Binance・bitbank の現物価格
+  demand/            demand.yaml の読み込み、ステーブルコインの増減・プレミアムの計算と暗号資産の需給のセクション
   schedule/          events.yaml の読み込み、予定の組み立て（JST 変換・期間・並べ替え）、今後の予定のセクション
   news/builder.py    主要ニュースのセクション（収集→選定→要約→表示）
   synthesis/         Claude に渡すデータ（facts）、数値の照合、まとめの呼び出し、今朝のまとめ・暗号資産への示唆のセクション

@@ -9,14 +9,14 @@ from good_morning.markets.config import MarketClose, MarketsConfig, load_markets
 
 
 def test_shipped_config_matches_spec():
-    """指示書「5. レポートの骨子」のマーケット一覧とセクター（任意項目は初期値オン）"""
+    """指示書「5. レポートの骨子」のマーケット一覧とセクター（株価指数先物は 2026-11-20 にオフ）"""
     config = load_markets_config()
 
     assert [m.ticker for m in config.enabled_markets()] == [
-        "^TNX", "JPY=X", "^DJI", "^GSPC", "^IXIC", "CL=F", "GC=F",
-        "^VIX", "DX-Y.NYB", "ES=F", "NQ=F", "YM=F",
+        "^TNX", "JPY=X", "^DJI", "^GSPC", "^IXIC", "CL=F", "GC=F", "^VIX", "DX-Y.NYB",
     ]  # fmt: skip
-    assert all(config.optional_groups.values())
+    assert config.optional_groups == {"vix": True, "dollar_index": True, "index_futures": False}
+    assert [m.ticker for m in config.markets if m.group == "index_futures"] == ["ES=F", "NQ=F", "YM=F"]
     assert [s.ticker for s in config.sectors] == [
         "XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLB", "XLU", "XLRE", "XLC",
     ]  # fmt: skip

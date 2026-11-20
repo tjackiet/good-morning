@@ -32,6 +32,9 @@ def build_notification(
             parts.append(f"{daily['label']} {daily['verdict']}（{daily['total']:+d}）")
         if parts:
             lines.append("・".join(parts))
+        etf = (view.get("etf") or {}).get("total")
+        if etf:
+            lines.append(f"BTC 現物ETF の純流入（{view['etf']['date_short']}）: {etf['label']}百万ドル")
 
     failed = view.get("failed_sections") or []
     if failed:

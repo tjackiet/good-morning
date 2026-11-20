@@ -35,7 +35,10 @@ def _rows(body: str) -> dict[str, list[str]]:
     return rows
 
 
-def test_markets_table_from_pre_open_snapshot(fake_yfinance, ctx):
+def test_markets_table_from_pre_open_snapshot(fake_yfinance, ctx, monkeypatch):
+    config = load_markets_config()
+    config.optional_groups["index_futures"] = True  # 取得時点の値（先物）の桁数も確かめるため
+    monkeypatch.setattr("good_morning.markets.builders.load_markets_config", lambda: config)
     fake_yfinance(YF_PRE_OPEN_FIXTURE)
 
     content = build_markets(ctx)
@@ -125,16 +128,14 @@ def test_close_date_mismatch_is_annotated(fake_yfinance, ctx):
     assert "米10年債利回り（11/13 終値）" in rows
 
 
-def test_optional_groups_can_be_turned_off(fake_yfinance, ctx, monkeypatch):
-    config = load_markets_config()
-    config.optional_groups["index_futures"] = False
-    monkeypatch.setattr("good_morning.markets.builders.load_markets_config", lambda: config)
+def test_optional_groups_turned_off_are_not_shown(fake_yfinance, ctx):
+    """設定のまま（株価指数先物はオフ）では、先物の行は出ない"""
     fake_yfinance(YF_PRE_OPEN_FIXTURE)
 
     rows = _rows(build_markets(ctx).body)
 
-    assert "S&P500先物 ※" not in rows
-    assert "VIX" in rows
+    assert not any("先物" in name and name not in ("WTI原油先物 ※", "金先物 ※") for name in rows)
+    assert "VIX" in rows and "ドルインデックス ※" in rows
 
 
 def test_close_basis_line_in_summer_time():

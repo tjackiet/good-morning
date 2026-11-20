@@ -34,6 +34,10 @@ YF_EARNINGS_AFTER_FIXTURE = "yfinance/earnings_20261118_1115.json"
 # 2026-11-18 08:58 JST に FRED（fred/releases/dates）から取得した実データ（12/19 までの分）
 FRED_FIXTURE = "fred/release_dates_20261118_0858.json"
 
+# 2026-11-20 09:30 JST に SoSoValue から取得した実データ（合計と IBIT・FBTC・GBTC・ARKB・BITB）。
+# 合計・IBIT・FBTC は 11/18 まで確定、GBTC・ARKB・BITB は 11/19 まで確定していた
+ETF_FIXTURE = "sosovalue/etf_flows_20261120_0930.json"
+
 
 @pytest.fixture(autouse=True)
 def _block_network(monkeypatch):
@@ -142,6 +146,37 @@ def fake_yfinance(monkeypatch):
 
         monkeypatch.setattr("good_morning.collector.market_data.yf.Ticker", FakeTicker)
         return data
+
+    return _install
+
+
+@pytest.fixture
+def fake_sosovalue(monkeypatch):
+    """SoSoValue の取得を固定データで差し替える。呼ばれた銘柄の順を返す"""
+    from good_morning.collector.sosovalue import parse_fund_history, parse_summary
+
+    def _install(name: str = ETF_FIXTURE, failing: tuple[str, ...] = ()):
+        from good_morning.collector.sosovalue import SoSoValueError
+
+        data = load_fixture_json(name)
+        calls = []
+        monkeypatch.setenv("SOSO_API_KEY", "test-key")
+
+        def _summary(*args, **kwargs):
+            calls.append("summary")
+            if "summary" in failing:
+                raise SoSoValueError("テスト用の失敗")
+            return parse_summary(data["summary"])
+
+        def _fund(ticker, **kwargs):
+            calls.append(ticker)
+            if ticker in failing or ticker not in data["funds"]:
+                raise SoSoValueError("テスト用の失敗")
+            return parse_fund_history(data["funds"][ticker])
+
+        monkeypatch.setattr("good_morning.etf.builder.fetch_summary_history", _summary)
+        monkeypatch.setattr("good_morning.etf.builder.fetch_fund_history", _fund)
+        return calls
 
     return _install
 
