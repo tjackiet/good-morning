@@ -3,6 +3,8 @@
 色はテンプレートの CSS 変数（--up / --down / --neutral など）で決め、ここでは形だけを作る。
 - 増減の棒（diverging bar）: 中央を0に、上がりは右へ青、下がりは左へ赤。幅は最大の絶対値に合わせる。
 - RSI の線グラフ: 2px の線、30 と 70 の目安線、最新の点に値を添える（グラフのガイドの決まり）。
+- 資金流出入の縦棒: 0 の線から、流入は上へ緑、流出は下へ赤。棒の先だけ角を丸める（0 の線の側は四角）。
+  日ごとの値を読むグラフなので、棒ごとに値を添える（5本程度なので混まない）。
 """
 
 import math
@@ -85,5 +87,84 @@ def rsi_svg(history: list[dict], oversold: float = 30, overbought: float = 70) -
     lx, ly = x(len(history) - 1), y(last["value"])
     parts.append(f'<circle class="dot" cx="{lx:.1f}" cy="{ly:.1f}" r="4"/>')
     parts.append(f'<text class="end-label" x="{lx + 8:.1f}" y="{ly + 4:.1f}">{last["value"]:.1f}</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def _split_day(label: str) -> tuple[str, str]:
+    """「11/18（水）」→（"11/18", "水"）。曜日がなければ（label, ""）"""
+    if "（" in label and label.endswith("）"):
+        day, weekday = label[:-1].split("（", 1)
+        return day, weekday
+    return label, ""
+
+
+def _column_path(x: float, w: float, y0: float, y1: float, radius: float = 4.0) -> str:
+    """x〜x+w の棒。y0 が 0 の線の側（四角）、y1 が棒の先（角を丸める）"""
+    r = min(radius, abs(y1 - y0), w / 2)
+    if y1 < y0:  # 上向き（流入）
+        return (
+            f"M{x:.1f},{y0:.1f}V{y1 + r:.1f}Q{x:.1f},{y1:.1f} {x + r:.1f},{y1:.1f}"
+            f"H{x + w - r:.1f}Q{x + w:.1f},{y1:.1f} {x + w:.1f},{y1 + r:.1f}V{y0:.1f}Z"
+        )
+    return (  # 下向き（流出）
+        f"M{x:.1f},{y0:.1f}V{y1 - r:.1f}Q{x:.1f},{y1:.1f} {x + r:.1f},{y1:.1f}"
+        f"H{x + w - r:.1f}Q{x + w:.1f},{y1:.1f} {x + w:.1f},{y1 - r:.1f}V{y0:.1f}Z"
+    )
+
+
+def flow_columns_svg(rows: list[dict], unit: str = "百万ドル") -> str:
+    """日ごとの資金流出入の縦棒（rows: label「11/18（水）」・value（数値）・value_label（表記）、古い順）"""
+    rows = [r for r in rows or [] if r.get("value") is not None]
+    if not rows:
+        return ""
+    width, height = 340, 190
+    left, right = 22, 8  # 左は 0 の線に添える「0」の分
+    label_space = 16  # 棒の先に添える値の分
+    date_space = 30  # 下の日付（2行）の分
+    top = label_space
+    bottom = height - date_space - label_space
+    values = [r["value"] for r in rows]
+    lo, hi = min(0.0, *values), max(0.0, *values)
+    if hi == lo:
+        hi = lo + 1.0
+
+    def y(v: float) -> float:
+        return top + (hi - v) / (hi - lo) * (bottom - top)
+
+    slot = (width - left - right) / len(rows)
+    bar_w = min(36.0, slot * 0.56)
+    zero = y(0.0)
+    parts = [
+        (
+            f'<svg class="flow" viewBox="0 0 {width} {height}" role="img" '
+            f'aria-label="直近{len(rows)}営業日の合計の純流入（{escape(unit)}）">'
+        )
+    ]
+    for i, r in enumerate(rows):
+        cx = left + slot * (i + 0.5)
+        value = r["value"]
+        cls = "up" if value > 0 else "down" if value < 0 else "neutral"
+        latest = " latest" if i == len(rows) - 1 else ""
+        day, weekday = _split_day(str(r.get("label", "")))
+        tip = f"{escape(str(r.get('label', '')))} {escape(str(r['value_label']))}{escape(unit)}"
+        parts.append(f'<g class="col-g{latest}"><title>{tip}</title>')
+        parts.append(f'<rect class="hit" x="{cx - slot / 2:.1f}" y="0" width="{slot:.1f}" height="{height}"/>')
+        if value != 0:
+            parts.append(f'<path class="col {cls}" d="{_column_path(cx - bar_w / 2, bar_w, zero, y(value))}"/>')
+        # 値は棒の先に（流入は上、流出は下、0 は線の上）
+        ly = y(value) - 5 if value >= 0 else y(value) + 13
+        parts.append(
+            f'<text class="val {cls}" x="{cx:.1f}" y="{ly:.1f}" text-anchor="middle">{escape(str(r["value_label"]))}</text>'
+        )
+        parts.append(f'<text class="date" x="{cx:.1f}" y="{height - 16}" text-anchor="middle">{escape(day)}</text>')
+        if weekday:
+            parts.append(
+                f'<text class="date wd" x="{cx:.1f}" y="{height - 3}" text-anchor="middle">{escape(weekday)}</text>'
+            )
+        parts.append("</g>")
+    # 0 の線は棒の上に重ねて描き、左端に「0」を添える（流入・流出の境目が分かるように）
+    parts.append(f'<line class="baseline" x1="{left - 2}" x2="{width - right}" y1="{zero:.1f}" y2="{zero:.1f}"/>')
+    parts.append(f'<text class="zero" x="{left - 6}" y="{zero + 3.5:.1f}" text-anchor="end">0</text>')
     parts.append("</svg>")
     return "".join(parts)

@@ -1,0 +1,231 @@
+{
+ "captured_at": "2026-11-20T10:09:52.944357+09:00",
+ "defillama_totals": [
+  {
+   "date": "1793491200",
+   "totalCirculatingUSD": {
+    "peggedUSD": 296391790102,
+    "peggedEUR": 837019721,
+    "peggedJPY": 153246729
+   }
+  },
+  {
+   "date": "1793577600",
+   "totalCirculatingUSD": {
+    "peggedUSD": 295652627159,
+    "peggedEUR": 836242070,
+    "peggedJPY": 152830829
+   }
+  },
+  {
+   "date": "1793664000",
+   "totalCirculatingUSD": {
+    "peggedUSD": 294692508066,
+    "peggedEUR": 837470928,
+    "peggedJPY": 183838687
+   }
+  },
+  {
+   "date": "1793750400",
+   "totalCirculatingUSD": {
+    "peggedUSD": 293836472820,
+    "peggedEUR": 839478377,
+    "peggedJPY": 183890997
+   }
+  },
+  {
+   "date": "1793836800",
+   "totalCirculatingUSD": {
+    "peggedUSD": 293348483202,
+    "peggedEUR": 840669939,
+    "peggedJPY": 187170981
+   }
+  },
+  {
+   "date": "1793923200",
+   "totalCirculatingUSD": {
+    "peggedUSD": 292330790516,
+    "peggedEUR": 848430794,
+    "peggedJPY": 186040954
+   }
+  },
+  {
+   "date": "1794009600",
+   "totalCirculatingUSD": {
+    "peggedUSD": 291447629798,
+    "peggedEUR": 848637557,
+    "peggedJPY": 149583397
+   }
+  },
+  {
+   "date": "1794096000",
+   "totalCirculatingUSD": {
+    "peggedUSD": 291492853123,
+    "peggedEUR": 847430874,
+    "peggedJPY": 149540862
+   }
+  },
+  {
+   "date": "1794182400",
+   "totalCirculatingUSD": {
+    "peggedUSD": 291223253423,
+    "peggedEUR": 846098799,
+    "peggedJPY": 149423272
+   }
+  },
+  {
+   "date": "1794268800",
+   "totalCirculatingUSD": {
+    "peggedUSD": 290376223601,
+    "peggedEUR": 842705976,
+    "peggedJPY": 149125850
+   }
+  },
+  {
+   "date": "1794355200",
+   "totalCirculatingUSD": {
+    "peggedUSD": 289483110253,
+    "peggedEUR": 834602873,
+    "peggedJPY": 147979883
+   }
+  },
+  {
+   "date": "1794441600",
+   "totalCirculatingUSD": {
+    "peggedUSD": 289066437339,
+    "peggedEUR": 839942024,
+    "peggedJPY": 147098195
+   }
+  },
+  {
+   "date": "1794528000",
+   "totalCirculatingUSD": {
+    "peggedUSD": 287773733081,
+    "peggedEUR": 842751142,
+    "peggedJPY": 147033138
+   }
+  },
+  {
+   "date": "1794614400",
+   "totalCirculatingUSD": {
+    "peggedUSD": 287053452596,
+    "peggedEUR": 827566422,
+    "peggedJPY": 146668757
+   }
+  },
+  {
+   "date": "1794700800",
+   "totalCirculatingUSD": {
+    "peggedUSD": 287096768749,
+    "peggedEUR": 830049873,
+    "peggedJPY": 146591978
+   }
+  },
+  {
+   "date": "1794787200",
+   "totalCirculatingUSD": {
+    "peggedUSD": 287100084698,
+    "peggedEUR": 831809031,
+    "peggedJPY": 146689721
+   }
+  },
+  {
+   "date": "1794873600",
+   "totalCirculatingUSD": {
+    "peggedUSD": 286444391373,
+    "peggedEUR": 822710032,
+    "peggedJPY": 146388162
+   }
+  },
+  {
+   "date": "1794960000",
+   "totalCirculatingUSD": {
+    "peggedUSD": 286258486953,
+    "peggedEUR": 826986083,
+    "peggedJPY": 146417768
+   }
+  },
+  {
+   "date": "1795046400",
+   "totalCirculatingUSD": {
+    "peggedUSD": 285228939203,
+    "peggedEUR": 822780714,
+    "peggedJPY": 145919330
+   }
+  },
+  {
+   "date": "1795132800",
+   "totalCirculatingUSD": {
+    "peggedUSD": 283639880509.28,
+    "peggedEUR": 814698625.28,
+    "peggedJPY": 145716349.39
+   }
+  }
+ ],
+ "defillama_assets": {
+  "peggedAssets": [
+   {
+    "id": "1",
+    "name": "Tether",
+    "symbol": "USDT",
+    "pegType": "peggedUSD",
+    "circulating": {
+     "peggedUSD": 175069614133.574
+    },
+    "circulatingPrevDay": {
+     "peggedUSD": 175020898268.94257
+    },
+    "circulatingPrevWeek": {
+     "peggedUSD": 175498256964.69653
+    }
+   },
+   {
+    "id": "2",
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "pegType": "peggedUSD",
+    "circulating": {
+     "peggedUSD": 68804003372.8073
+    },
+    "circulatingPrevDay": {
+     "peggedUSD": 68580848912.20428
+    },
+    "circulatingPrevWeek": {
+     "peggedUSD": 69467667764.34253
+    }
+   }
+  ]
+ },
+ "binance": {
+  "symbol": "BTCUSDT",
+  "price": "62463.03000000"
+ },
+ "coinbase": {
+  "ask": "62378",
+  "bid": "62377.99",
+  "volume": "12738.46590502",
+  "trade_id": 1138088236,
+  "price": "62377.68",
+  "size": "0.00016297",
+  "time": "2026-11-20T01:10:02.575826544Z",
+  "rfq_volume": "101.756100"
+ },
+ "bitbank": {
+  "success": 1,
+  "data": {
+   "sell": "9956197",
+   "buy": "9956196",
+   "open": "10067785",
+   "high": "10240000",
+   "low": "9823346",
+   "last": "9956197",
+   "vol": "158.1495",
+   "timestamp": 1795137001190
+  }
+ },
+ "bitbank_btc_jpy": {
+  "last": 9956197.0,
+  "timestamp": "2026-11-20T01:09:56.191000+00:00"
+ },
+ "usdjpy": 159.34300231933594
+}

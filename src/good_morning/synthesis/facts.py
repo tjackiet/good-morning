@@ -76,6 +76,84 @@ def _btc(ctx: RunContext) -> list[str]:
     return lines
 
 
+def _btc_etf(ctx: RunContext) -> list[str]:
+    flows = ctx.data.get("btc_etf")
+    if flows is None:
+        return []
+    from good_morning.etf.builder import (
+        billions_label,
+        flow_label,
+        fund_cell,
+        pending_tickers,
+        short_day,
+    )
+
+    day = short_day(flows.basis_date)
+    lines = [
+        f"## BTC 現物ETF の資金流出入（米国。{day} までの確定値で、引けたばかりの日の分はまだ確定していない。単位は百万ドル）"
+    ]
+    if flows.recent:
+        lines.append(
+            "- 合計の純流入（古い順）: "
+            + "、".join(f"{format_month_day(d.date)} {flow_label(d.net_inflow)}" for d in flows.recent)
+        )
+        total = flows.total
+        if total and total.cum_inflow is not None and total.net_assets is not None:
+            lines.append(
+                f"- 合計の累計の純流入 {billions_label(total.cum_inflow, signed=True)}億ドル、"
+                f"純資産 {billions_label(total.net_assets)}億ドル（{day} 時点）"
+            )
+    if flows.funds:
+        lines.append(
+            f"- 銘柄別の純流入（{day}）: "
+            + "、".join(f"{f.ticker}（{f.issuer}）{fund_cell(f)}" for f in flows.funds)
+        )
+    for d in flows.newer_dates:
+        settled = "、".join(
+            f"{f.ticker}（{f.issuer}）{flow_label(f.newer[d].net_inflow)}" for f in flows.funds if d in f.newer
+        )
+        pending = pending_tickers(flows, d)
+        rest = f"。未確定: {'・'.join(pending)}" if pending else ""
+        lines.append(
+            f"- 銘柄別の純流入（{short_day(d)}。一部の銘柄だけ確定していて、合計はまだ出ていない）: {settled}{rest}"
+        )
+    return lines
+
+
+def _crypto_demand(ctx: RunContext) -> list[str]:
+    data = ctx.data.get("crypto_demand")
+    if data is None:
+        return []
+    from good_morning.demand.builder import (
+        change_with_pct_label,
+        oku_change_label,
+        oku_label,
+        pct_label,
+        short_day,
+        usd_label,
+        week_change,
+    )
+
+    lines = ["## 暗号資産の需給"]
+    s = data.stablecoins
+    if s:
+        coins = "、".join(
+            f"{c.symbol} {oku_label(c.current)}億ドル（7日の増減 {change_with_pct_label(c.current, week_change(c))}）"
+            for c in s.coins
+        )
+        lines.append(
+            f"- ステーブルコイン（ドル連動）の供給量（増減は億ドルと%）: 合計 {oku_label(s.total)}億ドル"
+            f"（{short_day(s.date)} 分）、前日比 {oku_change_label(s.day_change)}、{s.period_days}日の増減 "
+            f"{change_with_pct_label(s.total, s.period_change)}" + (f"。内訳 {coins}" if coins else "")
+        )
+    for p, meaning in ((data.coinbase, "プラスは米国の買いが強い"), (data.japan, "プラスは国内の価格が割高")):
+        if p:
+            lines.append(
+                f"- {p.name}: {pct_label(p.pct)}（{usd_label(p.diff_usd, signed=True)}。取得時点の値。{meaning}）"
+            )
+    return lines if len(lines) > 1 else []
+
+
 def _crypto_watchlist(ctx: RunContext) -> list[str]:
     data = ctx.data.get("crypto_watchlist")
     if not data:
@@ -153,7 +231,8 @@ def _news(ctx: RunContext) -> list[str]:
 def build_facts(ctx: RunContext) -> str:
     """Claude に渡すデータの文章を作る（取得できたセクションの分だけ）"""
     lines = [f"# データ（{format_jst(ctx.now)} 時点。すべて計算済み）"]
-    for part in (_markets, _sectors, _btc, _crypto_watchlist, _stocks, _calendar, _news):
+    parts = (_markets, _sectors, _btc, _btc_etf, _crypto_demand, _crypto_watchlist, _stocks, _calendar, _news)
+    for part in parts:
         section = part(ctx)
         if section:
             lines.append("")

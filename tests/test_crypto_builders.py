@@ -115,12 +115,19 @@ def test_market_table_starts_with_btc(fake_bitbank, fake_yfinance, ctx):
     assert content.basis[0] == BITBANK_LINE
     assert content.sources == ["bitbank（bitbank-lab-mcp）", "Yahoo Finance（yfinance）"]
 
+# マーケット・セクター・BTC・暗号資産・株式（bitbank と yfinance を使うセクション）
+DATA_SPECS = [
+    s
+    for s in SECTION_SPECS
+    if s.key in {"markets", "sectors", "btc", "crypto_watchlist", "stock_watchlist"}
+]
+
 
 def test_bitbank_is_fetched_once_per_run(fake_bitbank, fake_yfinance, ctx):
     calls = fake_bitbank(BITBANK_FIXTURE)
     fake_yfinance(YF_PRE_OPEN_FIXTURE)
 
-    sections = build_sections(ctx, SECTION_SPECS[1:6])
+    sections = build_sections(ctx, DATA_SPECS)
 
     assert [s.status for s in sections] == [STATUS_OK] * 5
     assert len(calls) == 1
@@ -137,7 +144,7 @@ def test_mcp_failure_is_contained(fake_yfinance, ctx, monkeypatch):
     monkeypatch.setattr("good_morning.collector.bitbank_mcp.fetch_snapshot", broken)
     fake_yfinance(YF_PRE_OPEN_FIXTURE)
 
-    sections = {s.key: s for s in build_sections(ctx, SECTION_SPECS[1:6])}
+    sections = {s.key: s for s in build_sections(ctx, DATA_SPECS)}
 
     assert sections["btc"].status == STATUS_FAILED
     assert sections["crypto_watchlist"].status == STATUS_FAILED

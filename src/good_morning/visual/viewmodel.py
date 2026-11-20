@@ -79,6 +79,131 @@ def _markets(ctx: RunContext) -> dict | None:
     return {"hero": hero, "rows": rest, "note": stale_note(rows)}
 
 
+def _btc_etf(ctx: RunContext) -> dict | None:
+    """BTC 現物ETF の資金流出入。value はグラフの棒の長さ用（百万ドル。表記の文字列と同じ丸め）"""
+    flows = ctx.data.get("btc_etf")
+    if flows is None:
+        return None
+    from good_morning.etf.builder import (
+        SETTLEMENT_NOTE,
+        billions_label,
+        flow_label,
+        fund_cell,
+        pending_tickers,
+        short_day,
+    )
+
+    def millions(usd: float) -> float:
+        return round(usd / 1e6, 1)
+
+    total = flows.total
+    return {
+        "date": format_month_day(flows.basis_date),
+        "date_short": short_day(flows.basis_date),
+        "total": {"label": flow_label(total.net_inflow), "value": millions(total.net_inflow)} if total else None,
+        "cum": billions_label(total.cum_inflow, signed=True) if total and total.cum_inflow is not None else None,
+        "assets": billions_label(total.net_assets) if total and total.net_assets is not None else None,
+        "recent": [
+            {"label": format_month_day(d.date), "value_label": flow_label(d.net_inflow), "value": millions(d.net_inflow)}
+            for d in flows.recent
+        ],
+        "funds": [
+            {
+                "ticker": f.ticker,
+                "issuer": f.issuer,
+                "value_label": fund_cell(f),
+                "value": millions(f.day.net_inflow) if f.day else None,
+                "failed": f.failed,
+            }
+            for f in flows.funds
+        ],
+        # そろえた日より新しい日に、確定している銘柄の分（一部の銘柄だけ。合計は作らない）
+        "newer": [
+            {
+                "date": format_month_day(d),
+                "funds": [
+                    {
+                        "ticker": f.ticker,
+                        "value_label": flow_label(f.newer[d].net_inflow),
+                        "value": millions(f.newer[d].net_inflow),
+                    }
+                    for f in flows.funds
+                    if d in f.newer
+                ],
+                "pending": pending_tickers(flows, d),
+            }
+            for d in flows.newer_dates
+        ],
+        "note": SETTLEMENT_NOTE,
+    }
+
+
+def _crypto_demand(ctx: RunContext) -> dict | None:
+    """暗号資産の需給（ステーブルコインの供給量・プレミアム）。表記はレポートの表と同じ"""
+    data = ctx.data.get("crypto_demand")
+    if data is None:
+        return None
+    from good_morning.demand.builder import (
+        HOW_TO_READ,
+        PREMIUM_NOTE,
+        change_pct,
+        oku_change_label,
+        oku_label,
+        pct_label,
+        short_day,
+        usd_label,
+    )
+
+    def sign(value: float | None) -> int:
+        return 0 if value is None else (value > 0) - (value < 0)
+
+    stablecoins = None
+    s = data.stablecoins
+    if s:
+        coins = []
+        for c in s.coins:
+            week = c.current - c.prev_week if c.prev_week is not None else None
+            coins.append(
+                {
+                    "symbol": c.symbol,
+                    "current": oku_label(c.current),
+                    "week_change": oku_change_label(week),
+                    "week_pct_label": pct_label(change_pct(c.current, week)),
+                }
+            )
+        stablecoins = {
+            "total": oku_label(s.total),
+            "date_short": short_day(s.date),
+            "day_change": oku_change_label(s.day_change),
+            "period_change": oku_change_label(s.period_change),
+            # プレミアムのタイルと同じく、大きく出すのは %（増減率）
+            "period_pct_label": pct_label(s.period_change_pct),
+            "period_days": s.period_days,
+            "direction": sign(s.period_change),
+            "coins": coins,
+        }
+
+    def premium(p, name: str) -> dict:
+        if p is None:
+            return {"name": name, "failed": True}
+        return {
+            "name": p.name,
+            "failed": False,
+            "pct_label": pct_label(p.pct),
+            "pct": round(p.pct, 2),
+            "diff_label": usd_label(p.diff_usd, signed=True),
+            "detail": p.detail,
+        }
+
+    return {
+        "stablecoins": stablecoins,
+        "premiums": [premium(data.coinbase, "Coinbase プレミアム"), premium(data.japan, "日本プレミアム")],
+        "times": "・".join(data.times),
+        "how_to_read": [{"name": name, "text": text} for name, text in HOW_TO_READ],
+        "note": PREMIUM_NOTE,
+    }
+
+
 def _sectors(ctx: RunContext) -> list[dict] | None:
     rows = ctx.data.get("sectors")
     if not rows:
@@ -259,6 +384,8 @@ def build_view(ctx: RunContext, sections: list[Section], meta: ReportMeta) -> di
         "markets": _markets(ctx) if status.get("markets") == STATUS_OK else None,
         "sectors": _sectors(ctx) if status.get("sectors") == STATUS_OK else None,
         "btc": _btc(ctx) if status.get("btc") == STATUS_OK else None,
+        "etf": _btc_etf(ctx) if status.get("btc_etf") == STATUS_OK else None,
+        "demand": _crypto_demand(ctx) if status.get("crypto_demand") == STATUS_OK else None,
         "crypto": _crypto(ctx) if status.get("crypto_watchlist") == STATUS_OK else None,
         "stocks": _stocks(ctx) if status.get("stock_watchlist") == STATUS_OK else None,
         "calendar": _calendar(ctx) if status.get("calendar") == STATUS_OK else None,

@@ -15,6 +15,8 @@ from dataclasses import dataclass
 
 from good_morning.context import RunContext, SectionContent
 from good_morning.crypto.builders import build_btc, build_crypto_watchlist
+from good_morning.demand.builder import build_crypto_demand
+from good_morning.etf.builder import build_btc_etf
 from good_morning.markets.builders import build_markets, build_sectors, build_stock_watchlist
 from good_morning.news.builder import build_news
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, STATUS_PENDING, Section
@@ -53,6 +55,9 @@ SECTION_SPECS: list[SectionSpec] = [
     SectionSpec("markets", "マーケット一覧", phase=1, builder=build_markets),
     SectionSpec("sectors", "セクター別騰落率", phase=1, builder=build_sectors),
     SectionSpec("btc", "BTCの詳細", phase=2, builder=build_btc),
+    SectionSpec("btc_etf", "BTC 現物ETF の資金流出入", phase=5, builder=build_btc_etf),
+    # 日本プレミアムにマーケット一覧の BTC/JPY・ドル円を使うので、マーケット一覧より後に置く
+    SectionSpec("crypto_demand", "暗号資産の需給", phase=5, builder=build_crypto_demand),
     SectionSpec("crypto_watchlist", "暗号資産ウォッチリスト", phase=2, builder=build_crypto_watchlist),
     SectionSpec("stock_watchlist", "株式ウォッチリスト", phase=1, builder=build_stock_watchlist),
     SectionSpec("calendar", "今後の予定", phase=3, builder=build_calendar),

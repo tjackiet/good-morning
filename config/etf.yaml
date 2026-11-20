@@ -1,0 +1,18 @@
+# BTC 現物ETF の資金流出入（SoSoValue の API。キーは .env の SOSO_API_KEY）
+#
+# 資金の流出入は米国の取引日ごとの値で、翌営業日に確定する。毎朝 6:45 の時点では、
+# 引けたばかりの日の分はまだ出ていないので、確定している最新の日の分を日付付きで出す。
+
+symbol: BTC
+country_code: US
+
+# 合計の推移を出す営業日数（古い順に並ぶ）
+recent_days: 5
+
+# 銘柄別に出す ETF（この順に並ぶ）。1銘柄につき1回 API を呼ぶ（上限は1分20回）
+funds:
+  - {ticker: IBIT, issuer: ブラックロック}
+  - {ticker: FBTC, issuer: フィデリティ}
+  - {ticker: GBTC, issuer: グレースケール}
+  - {ticker: ARKB, issuer: アーク・21シェアーズ}
+  - {ticker: BITB, issuer: ビットワイズ}

@@ -1,0 +1,1321 @@
+{
+ "captured_at": "2026-11-20T09:30:00.472876+09:00",
+ "summary": {
+  "code": 0,
+  "message": "success",
+  "data": [
+   {
+    "date": "2026-11-18",
+    "total_net_inflow": -306421294.3350003,
+    "total_value_traded": 2562627854.6,
+    "total_net_assets": 77706592903.46516,
+    "cum_net_inflow": 54094730907.232994
+   },
+   {
+    "date": "2026-11-17",
+    "total_net_inflow": -239944866.82,
+    "total_value_traded": 2352304584.3,
+    "total_net_assets": 79649640510.39108,
+    "cum_net_inflow": 54401152201.568
+   },
+   {
+    "date": "2026-11-16",
+    "total_net_inflow": 7986219.699999999,
+    "total_value_traded": 2853679712,
+    "total_net_assets": 84315771501.6814,
+    "cum_net_inflow": 54641097068.388
+   },
+   {
+    "date": "2026-11-13",
+    "total_net_inflow": -185450233.4,
+    "total_value_traded": 2588280169.4,
+    "total_net_assets": 86199738908.25476,
+    "cum_net_inflow": 54633110848.687996
+   },
+   {
+    "date": "2026-11-12",
+    "total_net_inflow": -283997508.0,
+    "total_value_traded": 2885345830.3,
+    "total_net_assets": 89556010553.95004,
+    "cum_net_inflow": 54818561082.088
+   },
+   {
+    "date": "2026-11-11",
+    "total_net_inflow": -299898422.14,
+    "total_value_traded": 2269834567.708,
+    "total_net_assets": 93696850737.42168,
+    "cum_net_inflow": 55102558590.088
+   },
+   {
+    "date": "2026-11-10",
+    "total_net_inflow": -95001233.75,
+    "total_value_traded": 2062983908.6,
+    "total_net_assets": 92823526744.15384,
+    "cum_net_inflow": 55402457012.228
+   },
+   {
+    "date": "2026-11-09",
+    "total_net_inflow": -201081930.01,
+    "total_value_traded": 1726290132.4,
+    "total_net_assets": 94434986267.61964,
+    "cum_net_inflow": 55497458245.978
+   },
+   {
+    "date": "2026-11-06",
+    "total_net_inflow": -411917545.09999996,
+    "total_value_traded": 2333150247.3,
+    "total_net_assets": 95896862408.52428,
+    "cum_net_inflow": 55698540175.988
+   },
+   {
+    "date": "2026-11-05",
+    "total_net_inflow": -430203000.85,
+    "total_value_traded": 3885147006,
+    "total_net_assets": 96647198354.14713,
+    "cum_net_inflow": 56110457721.088
+   }
+  ],
+  "details": null
+ },
+ "funds": {
+  "IBIT": {
+   "code": 0,
+   "message": "success",
+   "data": [
+    {
+     "date": "2026-11-19",
+     "ticker": "IBIT",
+     "value_traded": 2583916000,
+     "volume": "72237284"
+    },
+    {
+     "date": "2026-11-18",
+     "ticker": "IBIT",
+     "net_inflow": -148663200,
+     "cum_inflow": 63910785983.659996,
+     "net_assets": 48717638560,
+     "currency_share": 35.396,
+     "prem_dsc": -0.0010170640750367665,
+     "value_traded": 2010413846,
+     "volume": "56407184"
+    },
+    {
+     "date": "2026-11-17",
+     "ticker": "IBIT",
+     "net_inflow": -209542400,
+     "cum_inflow": 64059449183.659996,
+     "net_assets": 49876871680,
+     "currency_share": 36.128,
+     "prem_dsc": 0.00033215234720995745,
+     "value_traded": 1739240714,
+     "volume": "47956057"
+    },
+    {
+     "date": "2026-11-16",
+     "ticker": "IBIT",
+     "net_inflow": 76500000,
+     "cum_inflow": 64268991583.659996,
+     "net_assets": 53990000000,
+     "prem_dsc": -0.0016,
+     "value_traded": 2250779041,
+     "volume": "61451496"
+    },
+    {
+     "date": "2026-11-13",
+     "ticker": "IBIT",
+     "net_inflow": -143531040,
+     "cum_inflow": 64192491583.659996,
+     "net_assets": 53991072840,
+     "currency_share": 39.003,
+     "prem_dsc": -0.0016152603645873675,
+     "value_traded": 2064290186,
+     "volume": "53025104"
+    },
+    {
+     "date": "2026-11-12",
+     "ticker": "IBIT",
+     "net_inflow": -203782320,
+     "cum_inflow": 64336022623.659996,
+     "net_assets": 56119386680,
+     "currency_share": 40.433,
+     "prem_dsc": -0.0018054559394553582,
+     "value_traded": 2285765661,
+     "volume": "56400295"
+    },
+    {
+     "date": "2026-11-11",
+     "ticker": "IBIT",
+     "net_inflow": -269734400,
+     "cum_inflow": 64539804943.659996,
+     "net_assets": 58709378000,
+     "currency_share": 42.146,
+     "prem_dsc": 0.002230342143975772,
+     "value_traded": 1791656697,
+     "volume": "42695242"
+    },
+    {
+     "date": "2026-11-10",
+     "ticker": "IBIT",
+     "net_inflow": -78236200,
+     "cum_inflow": 64809539343.659996,
+     "net_assets": 58236031000,
+     "currency_share": 41.615,
+     "prem_dsc": 0.0015619368016339674,
+     "value_traded": 1642132388,
+     "volume": "39448284"
+    },
+    {
+     "date": "2026-11-09",
+     "ticker": "IBIT",
+     "net_inflow": -213232320,
+     "cum_inflow": 64887775543.659996,
+     "net_assets": 59285354240,
+     "currency_share": 42.308,
+     "prem_dsc": 0.0002836343008414399,
+     "value_traded": 1337154051,
+     "volume": "31636013"
+    },
+    {
+     "date": "2026-11-06",
+     "ticker": "IBIT",
+     "net_inflow": -402996800,
+     "cum_inflow": 65101007863.659996,
+     "net_assets": 60291751040,
+     "currency_share": 42.872,
+     "prem_dsc": 0.00018660197798103795,
+     "value_traded": 1831131079,
+     "volume": "42813681"
+    },
+    {
+     "date": "2026-11-05",
+     "ticker": "IBIT",
+     "net_inflow": -104973680,
+     "cum_inflow": 65504004663.659996,
+     "net_assets": 60907105840,
+     "currency_share": 43.022,
+     "prem_dsc": 0.00018595137371590909,
+     "value_traded": 2976257130,
+     "volume": "68671956"
+    },
+    {
+     "date": "2026-11-04",
+     "ticker": "IBIT",
+     "net_inflow": -201243000,
+     "cum_inflow": 65608978343.659996,
+     "net_assets": 64278102000.00001,
+     "currency_share": 45.325,
+     "prem_dsc": 0.00011031439602859905,
+     "value_traded": 2720195977,
+     "volume": "60035563"
+    },
+    {
+     "date": "2026-11-03",
+     "ticker": "IBIT",
+     "net_inflow": -94979520,
+     "cum_inflow": 65810221343.659996,
+     "net_assets": 62554567200,
+     "currency_share": 43.972,
+     "prem_dsc": 0.0017738560902391676,
+     "value_traded": 1080677585,
+     "volume": "24657874"
+    },
+    {
+     "date": "2026-11-02",
+     "ticker": "IBIT",
+     "net_inflow": -405298840,
+     "cum_inflow": 65905200863.659996,
+     "net_assets": 61958538120,
+     "currency_share": 43.487,
+     "prem_dsc": -0.003150366776278002,
+     "value_traded": 1539315910,
+     "volume": "35211109"
+    },
+    {
+     "date": "2026-10-30",
+     "ticker": "IBIT",
+     "net_inflow": -233701200,
+     "cum_inflow": 66310499703.659996,
+     "net_assets": 62064114240,
+     "currency_share": 43.278,
+     "prem_dsc": 0.0018947271130829169,
+     "value_traded": 5214610152,
+     "volume": "119909667"
+    },
+    {
+     "date": "2026-10-29",
+     "ticker": "IBIT",
+     "net_inflow": 12797400,
+     "cum_inflow": 66544200903.659996,
+     "net_assets": 65791433400,
+     "currency_share": 45.705,
+     "prem_dsc": 0.00010939722131064755,
+     "value_traded": 1659186922,
+     "volume": "36404486"
+    },
+    {
+     "date": "2026-10-28",
+     "ticker": "IBIT",
+     "net_inflow": 136009040,
+     "cum_inflow": 66531403503.659996,
+     "net_assets": 66129800800,
+     "currency_share": 45.949,
+     "prem_dsc": 0.004156782519750157,
+     "value_traded": 930463513,
+     "volume": "20332140"
+    },
+    {
+     "date": "2026-10-27",
+     "ticker": "IBIT",
+     "net_inflow": 151455080,
+     "cum_inflow": 66395394463.659996,
+     "net_assets": 65519832560,
+     "currency_share": 45.619,
+     "prem_dsc": 0.00177557596615463,
+     "value_traded": 1185512181,
+     "volume": "26079266"
+    },
+    {
+     "date": "2026-10-26",
+     "ticker": "IBIT",
+     "net_inflow": 110344120,
+     "cum_inflow": 66243939383.659996,
+     "net_assets": 64800941160,
+     "currency_share": 45.223,
+     "prem_dsc": -6.633792539190164e-05,
+     "value_traded": 1375151821,
+     "volume": "30413973"
+    },
+    {
+     "date": "2026-10-23",
+     "ticker": "IBIT",
+     "net_inflow": -110342400,
+     "cum_inflow": 66133595263.659996,
+     "net_assets": 65767748480,
+     "currency_share": 45.976,
+     "prem_dsc": -0.0003480076561683809,
+     "value_traded": 250646590.06,
+     "volume": "5557147"
+    },
+    {
+     "date": "2026-10-22",
+     "ticker": "IBIT",
+     "net_inflow": -254052480,
+     "cum_inflow": 66243937663.659996,
+     "net_assets": 65946869120,
+     "currency_share": 46.024,
+     "prem_dsc": 0.0007822005909960961,
+     "value_traded": 1998521406,
+     "volume": "43344298"
+    },
+    {
+     "date": "2026-10-21",
+     "ticker": "IBIT",
+     "net_inflow": 234993960,
+     "cum_inflow": 66497990143.659996,
+     "net_assets": 68702299200,
+     "currency_share": 47.763,
+     "prem_dsc": 0.001612126541465253,
+     "value_traded": 2424791783,
+     "volume": "50839257"
+    }
+   ],
+   "details": null
+  },
+  "FBTC": {
+   "code": 0,
+   "message": "success",
+   "data": [
+    {
+     "date": "2026-11-19",
+     "ticker": "FBTC",
+     "net_inflow": null,
+     "cum_inflow": null,
+     "net_assets": null,
+     "currency_share": null,
+     "prem_dsc": null,
+     "value_traded": 267709000,
+     "volume": "4870383"
+    },
+    {
+     "date": "2026-11-18",
+     "ticker": "FBTC",
+     "net_inflow": -69310806.675,
+     "cum_inflow": 10073634666.375,
+     "net_assets": 10744723247.78116,
+     "currency_share": 54.361417,
+     "prem_dsc": -0.00021002027964067693,
+     "value_traded": 263931082,
+     "volume": "4825821"
+    },
+    {
+     "date": "2026-11-17",
+     "ticker": "FBTC",
+     "net_inflow": 0,
+     "cum_inflow": 10142945473.05,
+     "net_assets": 11044100610.50208,
+     "currency_share": 55.517946,
+     "prem_dsc": 0.0005773628584888613,
+     "value_traded": 249421833,
+     "volume": "4480523"
+    },
+    {
+     "date": "2026-11-16",
+     "ticker": "FBTC",
+     "net_inflow": -11299966,
+     "cum_inflow": 10142945473.05,
+     "net_assets": 11239425302.158401,
+     "currency_share": 56.49983,
+     "prem_dsc": 3.0088586107090975e-06,
+     "value_traded": 309725122.18,
+     "volume": "5497287"
+    },
+    {
+     "date": "2026-11-13",
+     "ticker": "FBTC",
+     "net_inflow": -41919193.4,
+     "cum_inflow": 10154245439.05,
+     "net_assets": 11924721806.52576,
+     "currency_share": 59.884562,
+     "prem_dsc": -0.0004101557927400634,
+     "value_traded": 230290666,
+     "volume": "3850568"
+    },
+    {
+     "date": "2026-11-12",
+     "ticker": "FBTC",
+     "net_inflow": -32604047.7,
+     "cum_inflow": 10196164632.45,
+     "net_assets": 12409937702.35904,
+     "currency_share": 62.102948,
+     "prem_dsc": -0.0011746302285037258,
+     "value_traded": 317787635,
+     "volume": "5105410"
+    },
+    {
+     "date": "2026-11-11",
+     "ticker": "FBTC",
+     "net_inflow": 0,
+     "cum_inflow": 10228768680.15,
+     "net_assets": 12978986790.28468,
+     "currency_share": 64.780441,
+     "prem_dsc": 0.0015368682037839587,
+     "value_traded": 229133718,
+     "volume": "3551457"
+    },
+    {
+     "date": "2026-11-10",
+     "ticker": "FBTC",
+     "net_inflow": -36790172.1,
+     "cum_inflow": 10228768680.15,
+     "net_assets": 12819198278.31984,
+     "currency_share": 63.982908,
+     "prem_dsc": 0.0010485925397449858,
+     "value_traded": 192492340,
+     "volume": "3015691"
+    },
+    {
+     "date": "2026-11-09",
+     "ticker": "FBTC",
+     "net_inflow": 0,
+     "cum_inflow": 10265558852.25,
+     "net_assets": 13065312726.95664,
+     "currency_share": 65.024693,
+     "prem_dsc": -7.217258219127665e-05,
+     "value_traded": 171957822,
+     "volume": "2647821"
+    },
+    {
+     "date": "2026-11-06",
+     "ticker": "FBTC",
+     "net_inflow": 42823453.400000006,
+     "cum_inflow": 10265558852.25,
+     "net_assets": 13237617538.481281,
+     "currency_share": 65.882236,
+     "prem_dsc": 0.00026966297865160804,
+     "value_traded": 232342857,
+     "volume": "3535108"
+    },
+    {
+     "date": "2026-11-05",
+     "ticker": "FBTC",
+     "net_inflow": -199868235.6,
+     "cum_inflow": 10222735398.85,
+     "net_assets": 13232828570.66112,
+     "currency_share": 66.072144,
+     "prem_dsc": 0.0014810174768964401,
+     "value_traded": 423180427,
+     "volume": "6356536"
+    },
+    {
+     "date": "2026-11-04",
+     "ticker": "FBTC",
+     "net_inflow": 236723568.6,
+     "cum_inflow": 10422603634.45,
+     "net_assets": 14154919204.234919,
+     "currency_share": 69.624579,
+     "prem_dsc": -0.0003530506087512375,
+     "value_traded": 399757164.921,
+     "volume": "5736039"
+    },
+    {
+     "date": "2026-11-03",
+     "ticker": "FBTC",
+     "net_inflow": 6756766.600000001,
+     "cum_inflow": 10185880065.85,
+     "net_assets": 13507011568.87768,
+     "currency_share": 67.567666,
+     "prem_dsc": 0.001662540778010646,
+     "value_traded": 179079047,
+     "volume": "2657629"
+    },
+    {
+     "date": "2026-11-02",
+     "ticker": "FBTC",
+     "net_inflow": 6681486.6,
+     "cum_inflow": 10179123299.25,
+     "net_assets": 13349842742.533678,
+     "currency_share": 66.814866,
+     "prem_dsc": -0.0032158711505908544,
+     "value_traded": 211955271,
+     "volume": "3159873"
+    },
+    {
+     "date": "2026-10-30",
+     "ticker": "FBTC",
+     "net_inflow": -201039905.82500002,
+     "cum_inflow": 10172441812.65,
+     "net_assets": 13272188037.06604,
+     "currency_share": 66.459473,
+     "prem_dsc": 0.003769605576017687,
+     "value_traded": 529468962,
+     "volume": "7928823"
+    },
+    {
+     "date": "2026-10-29",
+     "ticker": "FBTC",
+     "net_inflow": 10533886.950000001,
+     "cum_inflow": 10373481718.475,
+     "net_assets": 14236792599.102242,
+     "currency_share": 70.225913,
+     "prem_dsc": 5.824060984416235e-05,
+     "value_traded": 228803252,
+     "volume": "3255230"
+    },
+    {
+     "date": "2026-10-28",
+     "ticker": "FBTC",
+     "net_inflow": 0,
+     "cum_inflow": 10362947831.525,
+     "net_assets": 14307034450.11048,
+     "currency_share": 70.624651,
+     "prem_dsc": 0.00319076974978616,
+     "value_traded": 178054061,
+     "volume": "2535120"
+    },
+    {
+     "date": "2026-10-27",
+     "ticker": "FBTC",
+     "net_inflow": 24538297,
+     "cum_inflow": 10362947831.525,
+     "net_assets": 14202659737.2816,
+     "currency_share": 70.10942,
+     "prem_dsc": 0.0011493462647387265,
+     "value_traded": 212298394,
+     "volume": "3036170"
+    },
+    {
+     "date": "2026-10-26",
+     "ticker": "FBTC",
+     "net_inflow": 0,
+     "cum_inflow": 10338409534.525,
+     "net_assets": 14051151682.42816,
+     "currency_share": 69.481567,
+     "prem_dsc": -0.000598216214668712,
+     "value_traded": 217401969,
+     "volume": "3129247"
+    },
+    {
+     "date": "2026-10-23",
+     "ticker": "FBTC",
+     "net_inflow": -31783150.349999998,
+     "cum_inflow": 10338409534.525,
+     "net_assets": 14283240410.871038,
+     "currency_share": 70.629223,
+     "prem_dsc": -0.0002721677966073255,
+     "value_traded": 32380942.516,
+     "volume": "467311"
+    },
+    {
+     "date": "2026-10-22",
+     "ticker": "FBTC",
+     "net_inflow": -217457939.175,
+     "cum_inflow": 10370192684.875,
+     "net_assets": 14333022626.31592,
+     "currency_share": 70.718029,
+     "prem_dsc": 0.0003106562825725412,
+     "value_traded": 291760367,
+     "volume": "4121853"
+    },
+    {
+     "date": "2026-10-21",
+     "ticker": "FBTC",
+     "net_inflow": 212706787.2,
+     "cum_inflow": 10587650624.05,
+     "net_assets": 15091435064.14464,
+     "currency_share": 73.347168,
+     "prem_dsc": 0.001674679518641975,
+     "value_traded": 374577059,
+     "volume": "5109467"
+    }
+   ],
+   "details": null
+  },
+  "GBTC": {
+   "code": 0,
+   "message": "success",
+   "data": [
+    {
+     "date": "2026-11-19",
+     "ticker": "GBTC",
+     "net_inflow": -13876152,
+     "cum_inflow": -28235290074.0,
+     "net_assets": 7555808792.879999,
+     "currency_share": 47.8488,
+     "prem_dsc": -0.00039290431525973446,
+     "value_traded": 80839050,
+     "volume": "1627417"
+    },
+    {
+     "date": "2026-11-18",
+     "ticker": "GBTC",
+     "net_inflow": -20252484,
+     "cum_inflow": -28221413922.0,
+     "net_assets": 7628440462.0199995,
+     "currency_share": 48.2202,
+     "prem_dsc": -0.0006262935450288554,
+     "value_traded": 56966087,
+     "volume": "1173761"
+    },
+    {
+     "date": "2026-11-17",
+     "ticker": "GBTC",
+     "net_inflow": -17743716,
+     "cum_inflow": -28201161438.0,
+     "net_assets": 7818083350.81,
+     "currency_share": 49.2881,
+     "prem_dsc": 3.854885864940094e-05,
+     "value_traded": 144850890,
+     "volume": "2937338"
+    },
+    {
+     "date": "2026-11-16",
+     "ticker": "GBTC",
+     "net_inflow": -34594530,
+     "cum_inflow": -28183417722.0,
+     "net_assets": 7970785273.7,
+     "currency_share": 50.137,
+     "prem_dsc": -0.0003390709456091434,
+     "value_traded": 80678638,
+     "volume": "1615269"
+    },
+    {
+     "date": "2026-11-13",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28148823192.0,
+     "net_assets": 8478035233.72,
+     "currency_share": 53.0972,
+     "prem_dsc": -0.0005122680668661062,
+     "value_traded": 82348210,
+     "volume": "1553689"
+    },
+    {
+     "date": "2026-11-12",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28148823192.0,
+     "net_assets": 8788130534.93,
+     "currency_share": 55.0393,
+     "prem_dsc": -0.0005323468866791359,
+     "value_traded": 101159946,
+     "volume": "1829172"
+    },
+    {
+     "date": "2026-11-11",
+     "ticker": "GBTC",
+     "net_inflow": -39127676,
+     "cum_inflow": -28148823192.0,
+     "net_assets": 9187529323.07,
+     "currency_share": 57.5407,
+     "prem_dsc": 0.0005092047889581064,
+     "value_traded": 104943007.54,
+     "volume": "1832428"
+    },
+    {
+     "date": "2026-11-10",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28109695516.0,
+     "net_assets": 9114844874.34,
+     "currency_share": 56.8434,
+     "prem_dsc": -0.00023573537121290844,
+     "value_traded": 84910795,
+     "volume": "1499561"
+    },
+    {
+     "date": "2026-11-09",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28109695516.0,
+     "net_assets": 9250324673.83,
+     "currency_share": 57.6883,
+     "prem_dsc": -0.0008372581615335717,
+     "value_traded": 87871624,
+     "volume": "1524281"
+    },
+    {
+     "date": "2026-11-06",
+     "ticker": "GBTC",
+     "net_inflow": -11107742,
+     "cum_inflow": -28109695516.0,
+     "net_assets": 9374355476.18,
+     "currency_share": 58.4618,
+     "prem_dsc": -0.0003728930686363041,
+     "value_traded": 104073407,
+     "volume": "1785353"
+    },
+    {
+     "date": "2026-11-05",
+     "ticker": "GBTC",
+     "net_inflow": -49900355,
+     "cum_inflow": -28098587774.0,
+     "net_assets": 9424715272.63,
+     "currency_share": 58.7063,
+     "prem_dsc": -0.0006183322743895658,
+     "value_traded": 212075740,
+     "volume": "3589412"
+    },
+    {
+     "date": "2026-11-04",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28048687419.0,
+     "net_assets": 9968646862.74,
+     "currency_share": 61.7674,
+     "prem_dsc": 0.00020399110210234106,
+     "value_traded": 157872566.936,
+     "volume": "2554311"
+    },
+    {
+     "date": "2026-11-03",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28048687419.0,
+     "net_assets": 9685584766.35,
+     "currency_share": 60.0135,
+     "prem_dsc": 0.0002749381389186567,
+     "value_traded": 91090633,
+     "volume": "1524975"
+    },
+    {
+     "date": "2026-11-02",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -28048687419.0,
+     "net_assets": 9545030128.26,
+     "currency_share": 59.1426,
+     "prem_dsc": -0.0008893758475277957,
+     "value_traded": 82173977,
+     "volume": "1378129"
+    },
+    {
+     "date": "2026-10-30",
+     "ticker": "GBTC",
+     "net_inflow": -53324820,
+     "cum_inflow": -28048687419.0,
+     "net_assets": 9562331146.98,
+     "currency_share": 59.2498,
+     "prem_dsc": -0.00219072469442938,
+     "value_traded": 204441674,
+     "volume": "3443268"
+    },
+    {
+     "date": "2026-10-29",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10114487047.35,
+     "currency_share": 62.3235,
+     "prem_dsc": -0.00021661171147324687,
+     "value_traded": 80354471,
+     "volume": "1289498"
+    },
+    {
+     "date": "2026-10-28",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10210887366.75,
+     "currency_share": 62.9175,
+     "prem_dsc": 0.00019867286526009664,
+     "value_traded": 43709790,
+     "volume": "700944"
+    },
+    {
+     "date": "2026-10-27",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10109667031.38,
+     "currency_share": 62.2938,
+     "prem_dsc": 0.00042058760261864947,
+     "value_traded": 70391469,
+     "volume": "1134685"
+    },
+    {
+     "date": "2026-10-26",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10007278207.29,
+     "currency_share": 61.6629,
+     "prem_dsc": -0.0005335461030863131,
+     "value_traded": 81239299,
+     "volume": "1317263"
+    },
+    {
+     "date": "2026-10-23",
+     "ticker": "GBTC",
+     "net_inflow": 0,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10170542047.89,
+     "currency_share": 62.6689,
+     "prem_dsc": -0.0001420162153795701,
+     "value_traded": 18995454.186,
+     "volume": "309180"
+    },
+    {
+     "date": "2026-10-22",
+     "ticker": "GBTC",
+     "net_inflow": -29531933,
+     "cum_inflow": -27995362599.0,
+     "net_assets": 10197319914.39,
+     "currency_share": 62.8339,
+     "prem_dsc": -0.00022121816408016137,
+     "value_traded": 117115017,
+     "volume": "1863706"
+    },
+    {
+     "date": "2026-10-21",
+     "ticker": "GBTC",
+     "net_inflow": 32595000,
+     "cum_inflow": -27965830666.0,
+     "net_assets": 10610330919,
+     "currency_share": 65.19,
+     "prem_dsc": 0.00046019328117807845,
+     "value_traded": 144509862,
+     "volume": "2222392"
+    }
+   ],
+   "details": null
+  },
+  "ARKB": {
+   "code": 0,
+   "message": "success",
+   "data": [
+    {
+     "date": "2026-11-19",
+     "ticker": "ARKB",
+     "net_inflow": -31290014.720000003,
+     "cum_inflow": 849004074.555,
+     "net_assets": 1699027213.76,
+     "currency_share": 20.585536,
+     "prem_dsc": -0.002211990010850373,
+     "value_traded": 88015150,
+     "volume": "4216376"
+    },
+    {
+     "date": "2026-11-18",
+     "ticker": "ARKB",
+     "net_inflow": -19283053.380000003,
+     "cum_inflow": 880294089.275,
+     "net_assets": 1742835539.63,
+     "currency_share": 20.734466,
+     "prem_dsc": -0.0011799676924402203,
+     "value_traded": 56626024,
+     "volume": "2713418"
+    },
+    {
+     "date": "2026-11-17",
+     "ticker": "ARKB",
+     "net_inflow": -13118333.86,
+     "cum_inflow": 899577142.655,
+     "net_assets": 1798163875.955,
+     "currency_share": 21.158603,
+     "prem_dsc": 0.0005386461478578131,
+     "value_traded": 45993595,
+     "volume": "2166882"
+    },
+    {
+     "date": "2026-11-16",
+     "ticker": "ARKB",
+     "net_inflow": -4307488.2,
+     "cum_inflow": 912695476.515,
+     "net_assets": 1843712636.805,
+     "currency_share": 21.537441,
+     "prem_dsc": 0.0005831240582387931,
+     "value_traded": 39244630,
+     "volume": "1827777"
+    },
+    {
+     "date": "2026-11-13",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 917002964.715,
+     "net_assets": 1960169662.545,
+     "currency_share": 22.844469,
+     "prem_dsc": -0.0023843408222795626,
+     "value_traded": 75023418,
+     "volume": "3292611"
+    },
+    {
+     "date": "2026-11-12",
+     "ticker": "ARKB",
+     "net_inflow": -18474071.46,
+     "cum_inflow": 917002964.715,
+     "net_assets": 2032266284.135,
+     "currency_share": 23.684707,
+     "prem_dsc": -0.001465375949130432,
+     "value_traded": 54554435,
+     "volume": "2298432"
+    },
+    {
+     "date": "2026-11-11",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 935477036.175,
+     "net_assets": 2137018844.695,
+     "currency_share": 24.681167,
+     "prem_dsc": 0.0015733858937869716,
+     "value_traded": 21520092,
+     "volume": "875607"
+    },
+    {
+     "date": "2026-11-10",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 935477036.175,
+     "net_assets": 2110458116.6799998,
+     "currency_share": 24.374408,
+     "prem_dsc": 0.001460220080011787,
+     "value_traded": 24376022,
+     "volume": "1001395"
+    },
+    {
+     "date": "2026-11-09",
+     "ticker": "ARKB",
+     "net_inflow": -9911461.2,
+     "cum_inflow": 935477036.175,
+     "net_assets": 2145459670.0049999,
+     "currency_share": 24.778653,
+     "prem_dsc": 5.4361308502226535e-05,
+     "value_traded": 29193700,
+     "volume": "1178366"
+    },
+    {
+     "date": "2026-11-06",
+     "ticker": "ARKB",
+     "net_inflow": -20090060,
+     "cum_inflow": 945388497.375,
+     "net_assets": 2184417336.375,
+     "currency_share": 25.112575,
+     "prem_dsc": -0.0005007451446137345,
+     "value_traded": 33904585,
+     "volume": "1353711"
+    },
+    {
+     "date": "2026-11-05",
+     "ticker": "ARKB",
+     "net_inflow": -18900823.5,
+     "cum_inflow": 965478557.375,
+     "net_assets": 2212278387.9300003,
+     "currency_share": 25.201098,
+     "prem_dsc": -4.352984937405768e-05,
+     "value_traded": 57700921,
+     "volume": "2275592"
+    },
+    {
+     "date": "2026-11-04",
+     "ticker": "ARKB",
+     "net_inflow": 19903230,
+     "cum_inflow": 984379380.875,
+     "net_assets": 2349509957.4,
+     "currency_share": 26.53764,
+     "prem_dsc": 8.896797153035152e-05,
+     "value_traded": 62356432,
+     "volume": "2349833"
+    },
+    {
+     "date": "2026-11-03",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 964476150.875,
+     "net_assets": 2260098125.475,
+     "currency_share": 25.745835,
+     "prem_dsc": 0.0009385984179577367,
+     "value_traded": 25587421,
+     "volume": "996156"
+    },
+    {
+     "date": "2026-11-02",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 964476150.875,
+     "net_assets": 2235438265.555,
+     "currency_share": 25.464923,
+     "prem_dsc": -0.003334940380538276,
+     "value_traded": 37236189,
+     "volume": "1455452"
+    },
+    {
+     "date": "2026-10-30",
+     "ticker": "ARKB",
+     "net_inflow": -129546134.33999999,
+     "cum_inflow": 964476150.875,
+     "net_assets": 2225480900.79,
+     "currency_share": 25.351494,
+     "prem_dsc": 0.0030967011253852927,
+     "value_traded": 96381004,
+     "volume": "3782626"
+    },
+    {
+     "date": "2026-10-29",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2486319811.8,
+     "currency_share": 26.76484,
+     "prem_dsc": -0.0005544587600747608,
+     "value_traded": 35709048,
+     "volume": "1335886"
+    },
+    {
+     "date": "2026-10-28",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2498979449.505,
+     "currency_share": 26.901119,
+     "prem_dsc": 0.004419184198248383,
+     "value_traded": 31238690,
+     "volume": "1166820"
+    },
+    {
+     "date": "2026-10-27",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2481447654.84,
+     "currency_share": 26.712392,
+     "prem_dsc": 0.0015950649421436758,
+     "value_traded": 29719865,
+     "volume": "1116289"
+    },
+    {
+     "date": "2026-10-26",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2460096946.725,
+     "currency_share": 26.482555,
+     "prem_dsc": -9.647860638828387e-05,
+     "value_traded": 71758642,
+     "volume": "2710567"
+    },
+    {
+     "date": "2026-10-23",
+     "ticker": "ARKB",
+     "net_inflow": 0,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2501446090.44,
+     "currency_share": 26.927672,
+     "prem_dsc": -0.0002849113729549435,
+     "value_traded": 7177762.24,
+     "volume": "271536"
+    },
+    {
+     "date": "2026-10-22",
+     "ticker": "ARKB",
+     "net_inflow": -109430280.26,
+     "cum_inflow": 1094022285.215,
+     "net_assets": 2503824109.545,
+     "currency_share": 26.953271,
+     "prem_dsc": 0.0006206296816442247,
+     "value_traded": 27050637,
+     "volume": "1001890"
+    },
+    {
+     "date": "2026-10-21",
+     "ticker": "ARKB",
+     "net_inflow": 9789543.75,
+     "cum_inflow": 1203452565.475,
+     "net_assets": 2711843469.375,
+     "currency_share": 27.970125,
+     "prem_dsc": 0.0010681039144444515,
+     "value_traded": 42270127,
+     "volume": "1511005"
+    }
+   ],
+   "details": null
+  },
+  "BITB": {
+   "code": 0,
+   "message": "success",
+   "data": [
+    {
+     "date": "2026-11-19",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 1967218386.8699996,
+     "net_assets": 2241900523.7999997,
+     "currency_share": 33.67734,
+     "prem_dsc": -0.0014056632738809194,
+     "value_traded": 81282160,
+     "volume": "2363059"
+    },
+    {
+     "date": "2026-11-18",
+     "ticker": "BITB",
+     "net_inflow": -36642041.280000255,
+     "cum_inflow": 1967218386.8699996,
+     "net_assets": 2258574711.12,
+     "currency_share": 33.927816,
+     "prem_dsc": -0.00023037144507032092,
+     "value_traded": 54886950,
+     "volume": "1607271"
+    },
+    {
+     "date": "2026-11-17",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2003860428.15,
+     "net_assets": 2342664568.2,
+     "currency_share": 34.629188,
+     "prem_dsc": 0.0006009958997594822,
+     "value_traded": 44986444,
+     "volume": "1293697"
+    },
+    {
+     "date": "2026-11-16",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2003860428.15,
+     "net_assets": 2384486407.05,
+     "currency_share": 35.247397,
+     "prem_dsc": 0.0003575583184198816,
+     "value_traded": 45301013.376,
+     "volume": "1287633"
+    },
+    {
+     "date": "2026-11-13",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2003860428.15,
+     "net_assets": 2529031253.1,
+     "currency_share": 37.384054,
+     "prem_dsc": -0.0011784168726055588,
+     "value_traded": 49891092,
+     "volume": "1337184"
+    },
+    {
+     "date": "2026-11-12",
+     "ticker": "BITB",
+     "net_inflow": -26353719.6,
+     "cum_inflow": 2003860428.15,
+     "net_assets": 2621807545.5,
+     "currency_share": 38.75547,
+     "prem_dsc": -0.0011732537368274176,
+     "value_traded": 45538290,
+     "volume": "1171837"
+    },
+    {
+     "date": "2026-11-11",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2030214147.75,
+     "net_assets": 2760367734.68,
+     "currency_share": 40.397596,
+     "prem_dsc": 0.002039824349943986,
+     "value_traded": 56462278,
+     "volume": "1402286"
+    },
+    {
+     "date": "2026-11-10",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2030214147.75,
+     "net_assets": 2725583323.23,
+     "currency_share": 39.888531,
+     "prem_dsc": 0.001541019397280019,
+     "value_traded": 33511565,
+     "volume": "840807"
+    },
+    {
+     "date": "2026-11-09",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2030214147.75,
+     "net_assets": 2770961891.2,
+     "currency_share": 40.55264,
+     "prem_dsc": 0.00042808556976825507,
+     "value_traded": 33994682,
+     "volume": "838789"
+    },
+    {
+     "date": "2026-11-06",
+     "ticker": "BITB",
+     "net_inflow": -20546396.5,
+     "cum_inflow": 2030214147.75,
+     "net_assets": 2807870545.69,
+     "currency_share": 41.092793,
+     "prem_dsc": 0.00041875956204773246,
+     "value_traded": 44466528,
+     "volume": "1085049"
+    },
+    {
+     "date": "2026-11-05",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2050760544.25,
+     "net_assets": 2838287852.4900002,
+     "currency_share": 41.236203,
+     "prem_dsc": 0.0003345846367086569,
+     "value_traded": 72547110,
+     "volume": "1745563"
+    },
+    {
+     "date": "2026-11-04",
+     "ticker": "BITB",
+     "net_inflow": 15205118.250000002,
+     "cum_inflow": 2050760544.25,
+     "net_assets": 2990195111.8500004,
+     "currency_share": 43.443195,
+     "prem_dsc": -0.000533961648078729,
+     "value_traded": 97931002,
+     "volume": "2255479"
+    },
+    {
+     "date": "2026-11-03",
+     "ticker": "BITB",
+     "net_inflow": 21916522.68,
+     "cum_inflow": 2035555426.0,
+     "net_assets": 2886237448.32,
+     "currency_share": 42.147159,
+     "prem_dsc": 0.0017282778182037273,
+     "value_traded": 30626114,
+     "volume": "728516"
+    },
+    {
+     "date": "2026-11-02",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2013638903.32,
+     "net_assets": 2832706137.52,
+     "currency_share": 41.681962,
+     "prem_dsc": -0.003165949817813263,
+     "value_traded": 38361121,
+     "volume": "915597"
+    },
+    {
+     "date": "2026-10-30",
+     "ticker": "BITB",
+     "net_inflow": -25718285.72,
+     "cum_inflow": 2013638903.32,
+     "net_assets": 2819055963.7599998,
+     "currency_share": 41.481106,
+     "prem_dsc": 0.0021429997551174473,
+     "value_traded": 102967729,
+     "volume": "2469604"
+    },
+    {
+     "date": "2026-10-29",
+     "ticker": "BITB",
+     "net_inflow": 8761472.4,
+     "cum_inflow": 2039357189.04,
+     "net_assets": 3004308885.96,
+     "currency_share": 43.807362,
+     "prem_dsc": 0.0002884903226996194,
+     "value_traded": 32907881,
+     "volume": "752898"
+    },
+    {
+     "date": "2026-10-28",
+     "ticker": "BITB",
+     "net_inflow": 1321258.95,
+     "cum_inflow": 2030595716.64,
+     "net_assets": 3011589566.7,
+     "currency_share": 44.041965,
+     "prem_dsc": 0.00426945073863072,
+     "value_traded": 32510832,
+     "volume": "742587"
+    },
+    {
+     "date": "2026-10-27",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2029274457.69,
+     "net_assets": 2988644828.35,
+     "currency_share": 43.725601,
+     "prem_dsc": 0.0012440995379343622,
+     "value_traded": 21882670,
+     "volume": "502353"
+    },
+    {
+     "date": "2026-10-26",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2029274457.69,
+     "net_assets": 2962654535.8,
+     "currency_share": 43.345348,
+     "prem_dsc": -0.0005847917059058627,
+     "value_traded": 39102230,
+     "volume": "902422"
+    },
+    {
+     "date": "2026-10-23",
+     "ticker": "BITB",
+     "net_inflow": 0,
+     "cum_inflow": 2029274457.69,
+     "net_assets": 3011946915.4,
+     "currency_share": 44.066524,
+     "prem_dsc": -0.0003749785211105694,
+     "value_traded": 6775239.731,
+     "volume": "156991"
+    },
+    {
+     "date": "2026-10-22",
+     "ticker": "BITB",
+     "net_inflow": -27350043.259999998,
+     "cum_inflow": 2029274457.69,
+     "net_assets": 3015121704.5499997,
+     "currency_share": 44.112973,
+     "prem_dsc": 0.0008394129318829435,
+     "value_traded": 38762270,
+     "volume": "877587"
+    },
+    {
+     "date": "2026-10-21",
+     "ticker": "BITB",
+     "net_inflow": 19227306.84,
+     "cum_inflow": 2056624500.95,
+     "net_assets": 3157398458.94,
+     "currency_share": 45.779302,
+     "prem_dsc": 0.000889004380189018,
+     "value_traded": 49428288,
+     "volume": "1081550"
+    }
+   ],
+   "details": null
+  }
+ }
+}

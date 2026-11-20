@@ -12,7 +12,7 @@ from good_morning.markets.builders import build_markets, build_sectors, build_st
 from good_morning.paths import CONFIG_DIR
 from good_morning.reporter.markdown import STATUS_FAILED, STATUS_OK, ReportMeta, Section
 from good_morning.synthesis.claude import Synthesis
-from good_morning.visual.charts import add_bar_widths, rsi_domain, rsi_svg
+from good_morning.visual.charts import add_bar_widths, flow_columns_svg, rsi_domain, rsi_svg
 from good_morning.visual.render import (
     arrange_markets,
     load_view,
@@ -104,6 +104,31 @@ def test_rsi_domain_includes_guides_and_data():
     assert rsi_domain([85.0], 30, 70) == (20.0, 90.0)
 
 
+def test_flow_columns_go_up_for_inflow_and_down_for_outflow():
+    rows = [
+        {"label": "11/16（月）", "value": 8.0, "value_label": "+8.0"},
+        {"label": "11/17（火）", "value": 0.0, "value_label": "0.0"},
+        {"label": "11/18（水）", "value": -306.4, "value_label": "-306.4"},
+    ]
+    svg = flow_columns_svg(rows)
+
+    assert svg.startswith('<svg class="flow"') and 'aria-label="直近3営業日の合計の純流入（百万ドル）"' in svg
+    assert svg.count('<path class="col up"') == 1 and svg.count('<path class="col down"') == 1  # 0 は棒なし
+    assert '<text class="val neutral"' in svg and ">0.0</text>" in svg
+    assert "<title>11/18（水） -306.4百万ドル</title>" in svg  # ホバー
+    assert '<g class="col-g latest">' in svg  # 最新の日は太字
+    assert ">11/18</text>" in svg and ">水</text>" in svg  # 日付と曜日を2行で
+    assert '<line class="baseline"' in svg and '<text class="zero"' in svg  # 0 の線と「0」
+    assert svg.index('<line class="baseline"') > svg.rindex('<path class="col')  # 線は棒の上に重ねる
+
+
+def test_flow_columns_escape_labels_and_skip_empty():
+    assert flow_columns_svg([]) == ""
+    assert flow_columns_svg([{"label": "x", "value": None, "value_label": "未確定"}]) == ""
+    svg = flow_columns_svg([{"label": "<b>", "value": -1.0, "value_label": "<i>"}])
+    assert "<b>" not in svg and "&lt;b&gt;" in svg and "&lt;i&gt;" in svg
+
+
 def test_rsi_svg_marks_last_value_and_escapes_dates():
     svg = rsi_svg([{"date": "11/17", "value": 25.6}, {"date": "<b>", "value": 25.3}])
 
@@ -132,7 +157,7 @@ def test_markets_are_split_into_tiles_and_others_by_config(view):
     markets = arrange_markets(view)["markets"]
 
     assert [t["ticker"] for t in markets["tiles"]] == ["^DJI", "^GSPC", "^IXIC", "JPY=X", "^TNX", "CL=F"]
-    assert [r["ticker"] for r in markets["others"]] == ["GC=F", "^VIX", "DX-Y.NYB", "ES=F", "NQ=F", "YM=F"]
+    assert [r["ticker"] for r in markets["others"]] == ["GC=F", "^VIX", "DX-Y.NYB"]
     assert "tiles" not in view["markets"]  # 渡した view は書き換えない
 
 
@@ -155,7 +180,7 @@ def test_render_html_shows_each_market_item_once(view):
     assert tiles.index("ナスダック総合") < tiles.index("ドル円") < tiles.index("米10年債利回り")
     assert tiles.index("米10年債利回り") < tiles.index("WTI原油先物")
     names = re.findall(r"<tr>\s*<td>([^<]+?)(?: ※)?(?:<|$)", table.split("</table>")[0])
-    assert names == ["金先物", "VIX", "ドルインデックス", "S&amp;P500先物", "ナスダック100先物", "NYダウ先物"]
+    assert names == ["金先物", "VIX", "ドルインデックス"]  # 株価指数先物は設定でオフ
 
 
 def test_old_view_with_all_rows_is_rearranged(view):

@@ -181,6 +181,38 @@ ul.events li:first-child { border-top: none; }
 .imp.high { background: var(--ink); color: var(--card); border-color: var(--ink); }
 .ev-extra { font-size: 12px; color: var(--muted); }
 h3.cal-h { font-size: 13px; margin: 4px 0 2px; color: var(--ink-2); }
+
+/* BTC 現物ETF の資金流出入 */
+.flow-total { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.flow-total .label { width: 100%; font-size: 13px; color: var(--ink-2); }
+.flow-total .value { font-size: 30px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.flow-total .unit { font-size: 14px; color: var(--ink-2); }
+h3.flow-h { font-size: 13px; margin: 14px 0 6px; color: var(--ink-2); }
+svg.flow { width: 100%; max-width: 420px; height: auto; display: block; }
+svg.flow .col.up { fill: var(--up); }
+svg.flow .col.down { fill: var(--down); }
+svg.flow .baseline { stroke: var(--ink-2); stroke-width: 1.5; }
+svg.flow .zero { fill: var(--ink-2); font-size: 10.5px; font-weight: 600; }
+svg.flow .hit { fill: transparent; }
+svg.flow .val { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+svg.flow .val.up { fill: var(--up-text); }
+svg.flow .val.down { fill: var(--down-text); }
+svg.flow .val.neutral { fill: var(--ink-2); }
+svg.flow .date { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+svg.flow .date.wd { font-size: 10px; }
+svg.flow .latest .val, svg.flow .latest .date { font-weight: 700; }
+svg.flow .latest .date { fill: var(--ink-2); }
+.bars.wide-value .bar-row { grid-template-columns: minmax(0, 34%) 1fr 84px; }
+.flow-newer { font-size: 13px; margin: 10px 0 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; }
+.flow-newer .h { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 2px; }
+.flow-newer .item { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tile .t-unit { font-size: 11px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+/* 見出しが2行になるときは、語の切れ目（スペース・wbr）で折り返す（「ステーブルコイ／ン」にしない） */
+.demand-tiles .t-label, .demand-tiles .t-delta { word-break: keep-all; overflow-wrap: anywhere; }
+.how-to { list-style: none; margin: 10px 0 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; font-size: 12.5px; line-height: 1.5; }
+.how-to li + li { margin-top: 2px; }
+.how-to b { font-weight: 600; }
+.calc { margin: 4px 0 0; padding-left: 1.2em; font-size: 12px; color: var(--ink-2); }
 h3.cal-h + ul.events li:first-child { border-top: none; }
 ul.events.results { margin-bottom: 4px; }
 .eps { display: block; margin-top: 2px; font-size: 13px; }
@@ -334,6 +366,99 @@ footer ul { padding-left: 1.2em; margin: 4px 0; }
     </div>
     {% endif %}
     {% if v.btc.comment %}<p class="comment">{{ v.btc.comment }}</p>{% endif %}
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- BTC 現物ETF の資金流出入 ---- #}
+<section class="card" aria-labelledby="h-etf">
+  <h2 id="h-etf">BTC 現物ETF の資金流出入<span class="sub">米国・百万ドル</span></h2>
+  {% if v.etf %}
+    {% set e = v.etf %}
+    {% if e.total %}
+    <div class="flow-total">
+      <span class="label">合計の純流入・{{ e.date }}</span>
+      <span class="value {{ e.total.value|dir }}-t">{{ "▲" if e.total.value > 0 else "▼" if e.total.value < 0 else "●" }} {{ e.total.label }}</span><span class="unit">百万ドル</span>
+    </div>
+    {% endif %}
+    {% if e.recent %}
+    <h3 class="flow-h">合計の推移<span class="sub">直近{{ e.recent|length }}営業日・百万ドル</span></h3>
+    {{ flow_chart }}
+    {% endif %}
+    {% if e.funds %}
+    <h3 class="flow-h">銘柄別<span class="sub">{{ e.date }}</span></h3>
+    <div class="bars wide-value">
+      {% for r in e.funds|bars("value") %}
+      <div class="bar-row" title="{{ r.ticker }} {{ r.value_label }}">
+        <span class="bar-label"><span class="nm">{{ r.ticker }}</span><span class="tk">{{ r.issuer }}</span></span>
+        <span class="bar-track">
+          <span class="half neg">{% if r.dir < 0 %}<span class="bar down" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+          <span class="half pos">{% if r.dir > 0 %}<span class="bar up" style="width: {{ r.bar }}%"></span>{% endif %}</span>
+        </span>
+        {% if r.value is none %}<span class="bar-value muted">{{ r.value_label }}</span>
+        {% else %}<span class="bar-value {{ r.value|dir }}-t">{{ "▲" if r.dir > 0 else "▼" if r.dir < 0 else "●" }} {{ r.value_label }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% for n in e.newer %}
+    <p class="flow-newer">
+      <span class="h">{{ n.date }}・確定した銘柄だけ</span>
+      {% for r in n.funds %}<span class="item">{{ r.ticker }} <span class="{{ r.value|dir }}-t">{{ "▲" if r.value > 0 else "▼" if r.value < 0 else "●" }} {{ r.value_label }}</span></span>{% if not loop.last %}・{% endif %}{% endfor %}
+      <span class="muted">（{% if n.pending %}未確定: {{ n.pending|join("・") }}。合計も{% else %}合計は{% endif %}まだ出ていない）</span>
+    </p>
+    {% endfor %}
+    <p class="legend">{% if e.cum and e.assets %}累計の純流入 {{ e.cum }}億ドル・純資産 {{ e.assets }}億ドル（{{ e.date_short }} 時点）。{% endif %}{{ e.note }}</p>
+  {% else %}
+    <p class="failed">取得失敗</p>
+  {% endif %}
+</section>
+
+{# ---- 暗号資産の需給 ---- #}
+<section class="card" aria-labelledby="h-demand">
+  <h2 id="h-demand">暗号資産の需給<span class="sub">ステーブルコイン・プレミアム</span></h2>
+  {% if v.demand %}
+    {% set d = v.demand %}
+    <div class="tiles demand-tiles">
+      <div class="tile">
+        <div class="t-label">ステーブル<wbr>コイン</div>
+        {% if d.stablecoins %}
+          {% set s = d.stablecoins %}
+          <div class="t-value {{ s.direction|dir }}-t">{{ "▲" if s.direction > 0 else "▼" if s.direction < 0 else "●" }} {{ s.period_pct_label }}</div>
+          <div class="t-delta neutral-t">{{ s.period_days }}日で {{ s.period_change }}億ドル</div>
+        {% else %}
+          <div class="t-value muted">取得失敗</div>
+        {% endif %}
+      </div>
+      {% for p in d.premiums %}
+      <div class="tile"{% if not p.failed %} title="{{ p.detail }}"{% endif %}>
+        <div class="t-label">{{ p.name }}</div>
+        {% if p.failed %}
+          <div class="t-value muted">取得失敗</div>
+        {% else %}
+          <div class="t-value {{ p.pct|dir }}-t">{{ "▲" if p.pct > 0 else "▼" if p.pct < 0 else "●" }} {{ p.pct_label }}</div>
+          <div class="t-delta neutral-t">{{ p.diff_label }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <ul class="how-to">
+      {% for h in d.how_to_read %}<li><b>{{ h.name }}</b>：{{ h.text }}</li>{% endfor %}
+    </ul>
+    {% if d.stablecoins %}
+    <p class="legend">ステーブルコインはドル連動の合計 {{ d.stablecoins.total }}億ドルの{{ d.stablecoins.period_days }}日の増減率（DefiLlama の日次の値・{{ d.stablecoins.date_short }} 分。前日比 {{ d.stablecoins.day_change }}億ドル）{% if d.stablecoins.coins %}。内訳: {% for c in d.stablecoins.coins %}{{ c.symbol }} {{ c.current }}億ドル（7日で {{ c.week_pct_label }}・{{ c.week_change }}億ドル）{% if not loop.last %}・{% endif %}{% endfor %}{% endif %}</p>
+    {% endif %}
+    {% if d.premiums|selectattr("failed", "false")|list %}
+    <details class="later">
+      <summary>プレミアムの計算に使った価格</summary>
+      <ul class="calc">
+        {% for p in d.premiums if not p.failed %}<li>{{ p.name }}: {{ p.detail }}</li>{% endfor %}
+        {% if d.times %}<li>価格の時刻（日本時間）: {{ d.times }}</li>{% endif %}
+        <li>{{ d.note }}</li>
+      </ul>
+    </details>
+    {% endif %}
   {% else %}
     <p class="failed">取得失敗</p>
   {% endif %}

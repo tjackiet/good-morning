@@ -1,0 +1,14 @@
+# 暗号資産の需給（キー不要の公開 API）
+#
+# - ステーブルコインの供給量（DefiLlama）: 暗号資産市場に入ってくる待機資金の目安。増えていれば買いの余力が増えている
+# - Coinbase プレミアム: Coinbase の BTC-USD と Binance の BTC-USDT の差。プラスは米国の買いが強い
+#   （Binance は USDT 建てなので、USDT とドルの差も含む）
+# - 日本プレミアム: bitbank の BTC/JPY をドル円でドルに換算し、Coinbase と比べた差。プラスは国内が割高
+
+stablecoins:
+  change_days: 7            # 合計の増減を出す日数（前日比とあわせて出す）
+  breakdown: [USDT, USDC]   # 内訳を出す銘柄（DefiLlama の symbol。ドル連動のもの）
+
+premium:
+  coinbase_product: BTC-USD
+  reference_symbol: BTCUSDT   # 比べる海外取引所（Binance の現物）の銘柄
